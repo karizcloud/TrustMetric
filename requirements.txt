@@ -11,7 +11,7 @@
 #
 # Python version required: 3.10 or higher (tested on 3.12)
 # ============================================================
-
+reportlab
 
 # ------------------------------------------------------------
 # CORE — Required. App will NOT start without these.
