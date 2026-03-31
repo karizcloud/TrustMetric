@@ -14,8 +14,7 @@ It analyses how people actually **spend, save, and pay bills** to generate a **t
 
 ## 🚀 Live Demo
 
-🔗 **Demo:** https://your-demo-link.com  
-🔗 **API Docs:** https://your-demo-link.com/docs  
+🔗 **Demo:** https://trustmetric.onrender.com
 
 ### Demo Credentials (Optional)
 Email: demo@trustmetric.com  
