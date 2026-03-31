@@ -1,0 +1,1848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TrustMetric — Build Financial Trust</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23111'/%3E%3Cpolygon points='16,4 27,9 27,23 16,28 5,23 5,9' stroke='%23D4AF37' stroke-width='2' stroke-linejoin='round' fill='none'/%3E%3Cpolygon points='16,9 23,13 23,19 16,23 9,19 9,13' fill='rgba(212,175,55,0.3)' stroke='%23D4AF37' stroke-width='1.2' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+/* ══════════════════════════════════════════════
+   PAGE TRANSITION OVERLAY
+══════════════════════════════════════════════ */
+#page-transition {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#page-transition.fade-out {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* Page enter fade-in */
+body {
+  animation: pageEnter 0.5s ease forwards;
+}
+
+@keyframes pageEnter {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ══════════════════════════════════════════════
+   RESET & ROOT VARIABLES
+══════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --gold:        #D4AF37;
+  --gold-deep:   #C9A227;
+  --gold-pale:   #F0D060;
+  --gold-dim:    rgba(212,175,55,0.15);
+  --gold-glow:   rgba(212,175,55,0.4);
+  --black:       #000000;
+  --charcoal:    #0A0A0A;
+  --white:       #FFFFFF;
+  --white-soft:  rgba(255,255,255,0.9);
+  --white-muted: #A0A0A0;
+  --font-display: 'Cormorant Garamond', serif;
+  --font-body:    'Outfit', sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--black);
+  color: var(--white);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* ══════════════════════════════════════════════
+   BACKGROUND LAYER
+══════════════════════════════════════════════ */
+#bg-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  will-change: transform;
+}
+
+/* WebGL financial network canvas */
+#bg-webgl {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+/* Finance-themed SVG background — dark grid + data lines */
+#bg-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+}
+
+/* Deep radial vignette overlay */
+#bg-layer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 40%, rgba(212,175,55,0.06) 0%, transparent 60%),
+    linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.3) 40%, rgba(0,0,0,0.75) 100%);
+  pointer-events: none;
+}
+
+/* ══════════════════════════════════════════════
+   NOISE GRAIN OVERLAY (luxury texture)
+══════════════════════════════════════════════ */
+#grain {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.032;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+}
+
+/* ══════════════════════════════════════════════
+   FLOATING FINANCE CARDS (behind glass)
+══════════════════════════════════════════════ */
+#floating-cards {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.fc {
+  position: absolute;
+  background: rgba(255,255,255,0.04);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(212,175,55,0.18);
+  border-radius: 16px;
+  padding: 18px 20px;
+  box-shadow:
+    0 16px 48px rgba(0,0,0,0.72),
+    0 0 22px rgba(212,175,55,0.18),
+    inset 0 1px 0 rgba(212,175,55,0.14);
+  opacity: 0;
+  transition: opacity 0.8s ease;
+  transform-style: preserve-3d;
+  will-change: transform, opacity;
+}
+
+.fc.show { opacity: 1; }
+
+/* Trust Score Card — left mid */
+#fc-trust {
+  width: 210px;
+  left: 4%;
+  top: 22%;
+}
+
+/* Investment Chart Card — right upper */
+#fc-invest {
+  width: 230px;
+  right: 4%;
+  top: 18%;
+}
+
+/* Analytics Card — right lower */
+#fc-analytics {
+  width: 200px;
+  right: 6%;
+  bottom: 18%;
+}
+
+/* ── Card inner styles ── */
+.fc-label {
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(212,175,55,0.65);
+  margin-bottom: 10px;
+}
+
+.fc-score {
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: 600;
+  color: var(--gold);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.fc-sub {
+  font-size: 10.5px;
+  color: rgba(255,255,255,0.4);
+  margin-bottom: 14px;
+}
+
+.fc-segs {
+  display: flex;
+  gap: 5px;
+}
+
+.fc-seg {
+  flex: 1;
+}
+
+.fc-seg-bar {
+  height: 3px;
+  border-radius: 2px;
+  margin-bottom: 4px;
+}
+
+.fc-seg-lbl {
+  font-size: 8px;
+  color: rgba(255,255,255,0.3);
+  letter-spacing: 0.03em;
+  text-align: center;
+}
+
+/* Trust Score orb layout */
+.fc-orb-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.trust-orb {
+  position: relative;
+  width: 82px;
+  height: 82px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 40%),
+    radial-gradient(circle at 70% 80%, rgba(212,175,55,0.8) 0%, rgba(212,175,55,0.1) 45%, rgba(0,0,0,0.9) 100%);
+  box-shadow:
+    0 0 32px rgba(212,175,55,0.45),
+    0 0 0 1px rgba(212,175,55,0.35),
+    inset 0 0 22px rgba(0,0,0,0.8);
+  transform: scale(0.7);
+  opacity: 0;
+  transform-style: preserve-3d;
+  transition:
+    opacity 0.7s cubic-bezier(0.22,1,0.36,1),
+    transform 0.7s cubic-bezier(0.22,1,0.36,1);
+}
+
+.trust-orb.active {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.trust-orb-core {
+  position: absolute;
+  inset: 22%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 20%, #ffffff, #F0D060 55%, rgba(212,175,55,0.15) 100%);
+  box-shadow:
+    0 0 18px rgba(255,255,255,0.8),
+    0 0 40px rgba(212,175,55,0.8);
+}
+
+.trust-orb-ring {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 1px solid rgba(212,175,55,0.5);
+  box-shadow: 0 0 10px rgba(212,175,55,0.6);
+  animation: orbRingSpin 26s linear infinite;
+}
+
+.trust-orb-ring-inner {
+  inset: 6px;
+  border-style: dashed;
+  opacity: 0.7;
+  animation-duration: 18s;
+  animation-direction: reverse;
+}
+
+.fc-orb-metrics {
+  flex: 1;
+}
+
+.fc-score-counter {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.fc-score-counter span {
+  display: inline-block;
+}
+
+/* Micro chart bars */
+.chart-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  height: 48px;
+  margin-bottom: 10px;
+}
+
+.chart-bar {
+  flex: 1;
+  border-radius: 3px 3px 0 0;
+  background: linear-gradient(180deg, var(--gold-pale) 0%, var(--gold-deep) 100%);
+  opacity: 0.75;
+}
+
+.chart-label-row {
+  display: flex;
+  justify-content: space-between;
+}
+
+.chart-month {
+  font-size: 8px;
+  color: rgba(212,175,55,0.45);
+}
+
+/* Analytics rows */
+.anal-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.anal-row:last-child { margin-bottom: 0; }
+
+.anal-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.anal-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+}
+
+.anal-name {
+  font-size: 10.5px;
+  color: rgba(255,255,255,0.55);
+}
+
+.anal-val {
+  font-size: 10.5px;
+  color: var(--gold);
+  font-weight: 500;
+}
+
+/* ══════════════════════════════════════════════
+   NAVBAR
+══════════════════════════════════════════════ */
+#navbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 48px;
+  opacity: 0;
+  transform: translateY(-16px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+
+#navbar.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+#navbar.scrolled {
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(212,175,55,0.1);
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.nav-logo-mark {
+  width: 34px; height: 34px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #111 0%, #1a1a1a 100%);
+  border: 1px solid rgba(212,175,55,0.4);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 12px rgba(212,175,55,0.2);
+}
+
+.nav-logo-text {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--white);
+  letter-spacing: -0.2px;
+}
+
+.nav-links {
+  display: flex;
+  gap: 32px;
+  list-style: none;
+}
+
+.nav-links a {
+  font-size: 13px;
+  font-weight: 400;
+  color: rgba(255,255,255,0.6);
+  text-decoration: none;
+  letter-spacing: 0.02em;
+  transition: color 0.2s;
+}
+
+.nav-links a:hover { color: var(--gold); }
+
+.nav-cta {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--black);
+  background: var(--gold);
+  border: none;
+  border-radius: 8px;
+  padding: 9px 22px;
+  cursor: pointer;
+  font-family: var(--font-body);
+  letter-spacing: 0.02em;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.nav-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(212,175,55,0.4);
+}
+
+/* ══════════════════════════════════════════════
+   HERO SECTION
+══════════════════════════════════════════════ */
+#hero {
+  position: relative;
+  z-index: 10;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 24px 120px;
+}
+
+/* Glass container */
+#glass-card {
+  position: relative;
+  background: rgba(255,255,255,0.055);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.13);
+  border-radius: 24px;
+  box-shadow:
+    0 24px 64px rgba(0,0,0,0.6),
+    0 0 0 1px rgba(212,175,55,0.08),
+    inset 0 1px 0 rgba(255,255,255,0.1),
+    inset 0 -1px 0 rgba(212,175,55,0.08);
+  padding: 64px 72px 56px;
+  max-width: 780px;
+  width: 100%;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(40px) scale(0.97);
+  transition: opacity 0.85s cubic-bezier(0.22,1,0.36,1), transform 0.85s cubic-bezier(0.22,1,0.36,1);
+}
+
+#glass-card.show {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+/* Thin gold top edge accent */
+#glass-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 15%; right: 15%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  opacity: 0.6;
+  border-radius: 0 0 4px 4px;
+}
+
+/* Eyebrow badge */
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(212,175,55,0.1);
+  border: 1px solid rgba(212,175,55,0.25);
+  border-radius: 100px;
+  padding: 6px 16px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 28px;
+  opacity: 0;
+  animation: none;
+}
+
+.hero-badge.show {
+  animation: fadeUpIn 0.6s 0.3s ease forwards;
+}
+
+.badge-pulse {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--gold);
+  animation: blink 2s ease-in-out infinite;
+}
+
+/* Hero title */
+#hero-title {
+  font-family: var(--font-display);
+  font-size: clamp(48px, 8vw, 88px);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.5px;
+  margin-bottom: 22px;
+  opacity: 0;
+}
+
+#hero-title.show {
+  animation: fadeUpIn 0.75s 0.45s cubic-bezier(0.22,1,0.36,1) forwards;
+}
+
+.title-shimmer {
+  background: linear-gradient(
+    120deg,
+    var(--gold-deep) 0%,
+    var(--gold-pale) 30%,
+    #ffffff 50%,
+    var(--gold-pale) 70%,
+    var(--gold) 100%
+  );
+  background-size: 250% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: titleShimmer 5s linear infinite;
+}
+
+.title-white {
+  color: rgba(255,255,255,0.9);
+  -webkit-text-fill-color: rgba(255,255,255,0.9);
+}
+
+/* Subtitle */
+#hero-sub {
+  font-size: clamp(15px, 2.2vw, 18px);
+  font-weight: 300;
+  color: var(--white-muted);
+  line-height: 1.7;
+  max-width: 520px;
+  margin: 0 auto 40px;
+  letter-spacing: 0.01em;
+  opacity: 0;
+}
+
+#hero-sub.show {
+  animation: fadeUpIn 0.7s 0.6s ease forwards;
+}
+
+/* CTA Button */
+#cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--gold);
+  color: var(--black);
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 600;
+  padding: 18px 48px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  box-shadow: 0 8px 32px rgba(212,175,55,0.35), 0 2px 8px rgba(212,175,55,0.2);
+  transition: transform 0.25s cubic-bezier(0.22,1,0.36,1), box-shadow 0.25s ease;
+  position: relative;
+  overflow: hidden;
+  text-decoration: none;
+  opacity: 0;
+}
+
+#cta-btn.show {
+  animation: fadeUpIn 0.7s 0.75s ease forwards;
+}
+
+#cta-btn::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 60%);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+#cta-btn:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 16px 48px rgba(212,175,55,0.5), 0 4px 16px rgba(212,175,55,0.3);
+}
+
+#cta-btn:active {
+  transform: translateY(0) scale(0.99);
+}
+
+#cta-btn svg {
+  transition: transform 0.25s ease;
+}
+
+#cta-btn:hover svg {
+  transform: translateX(4px);
+}
+
+/* Stats strip */
+#hero-stats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 36px;
+  margin-top: 44px;
+  opacity: 0;
+}
+
+#hero-stats.show {
+  animation: fadeUpIn 0.7s 0.9s ease forwards;
+}
+
+.stat-item { text-align: center; }
+
+.stat-val {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--gold);
+  line-height: 1.1;
+}
+
+.stat-label {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--white-muted);
+  margin-top: 3px;
+  letter-spacing: 0.04em;
+}
+
+.stat-divider {
+  width: 1px;
+  height: 32px;
+  background: rgba(255,255,255,0.1);
+}
+
+/* ══════════════════════════════════════════════
+   SCROLL INDICATOR
+══════════════════════════════════════════════ */
+#scroll-indicator {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  cursor: pointer;
+}
+
+#scroll-indicator.show { opacity: 1; }
+#scroll-indicator.hide { opacity: 0; pointer-events: none; }
+
+.scroll-text {
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.35);
+}
+
+.scroll-arrow {
+  animation: bounceArrow 2s ease-in-out infinite;
+}
+
+/* ══════════════════════════════════════════════
+   MARQUEE STRIP
+══════════════════════════════════════════════ */
+#marquee-section {
+  position: relative;
+  z-index: 10;
+  padding: 48px 0;
+  border-top: 1px solid rgba(212,175,55,0.08);
+  border-bottom: 1px solid rgba(212,175,55,0.08);
+  overflow: hidden;
+  background: rgba(212,175,55,0.02);
+}
+
+.marquee-track {
+  display: flex;
+  gap: 64px;
+  width: max-content;
+  animation: marquee 28s linear infinite;
+}
+
+.marquee-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.3);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.marquee-dot {
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--gold);
+  opacity: 0.5;
+}
+
+/* ══════════════════════════════════════════════
+   FOOTER
+══════════════════════════════════════════════ */
+#footer {
+  position: relative;
+  z-index: 10;
+  padding: 48px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.footer-logo {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.5);
+}
+
+.footer-copy {
+  font-size: 12px;
+  color: rgba(255,255,255,0.25);
+}
+
+.footer-links {
+  display: flex;
+  gap: 24px;
+}
+
+.footer-links a {
+  font-size: 12px;
+  color: rgba(255,255,255,0.3);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.footer-links a:hover { color: var(--gold); }
+
+/* ══════════════════════════════════════════════
+   KEYFRAMES
+══════════════════════════════════════════════ */
+@keyframes floatA {
+  0%, 100% { transform: translateY(0px) rotate(-1.5deg); }
+  50%       { transform: translateY(-16px) rotate(-1.5deg); }
+}
+@keyframes floatB {
+  0%, 100% { transform: translateY(0px) rotate(2deg); }
+  50%       { transform: translateY(-11px) rotate(2deg); }
+}
+@keyframes floatC {
+  0%, 100% { transform: translateY(0px) rotate(-0.8deg); }
+  50%       { transform: translateY(-9px) rotate(-0.8deg); }
+}
+@keyframes titleShimmer {
+  0%   { background-position: 0% center; }
+  100% { background-position: 250% center; }
+}
+@keyframes fadeUpIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes bounceArrow {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(8px); }
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+@keyframes orbRingSpin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes orbDrift1 {
+  0%, 100% { transform: translate(0,0) scale(1); }
+  50%       { transform: translate(30px,-20px) scale(1.05); }
+}
+@keyframes orbDrift2 {
+  0%, 100% { transform: translate(0,0) scale(1); }
+  50%       { transform: translate(-25px,18px) scale(1.04); }
+}
+
+/* ══════════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════════ */
+@media (max-width: 1024px) {
+  #fc-analytics { display: none; }
+}
+
+@media (max-width: 768px) {
+  #navbar { padding: 18px 24px; }
+  .nav-links { display: none; }
+
+  #glass-card { padding: 40px 28px 36px; }
+
+  #fc-trust, #fc-invest, #fc-analytics { display: none; }
+
+  .features-grid { grid-template-columns: 1fr; }
+
+  #hero-stats { gap: 20px; }
+  .stat-divider { display: none; }
+
+  #footer {
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- Page transition overlay -->
+<div id="page-transition"></div>
+
+<!-- ── BACKGROUND LAYER ──────────────────────────────────────── -->
+<div id="bg-layer">
+  <canvas id="bg-webgl"></canvas>
+  <svg id="bg-canvas" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+    <defs>
+      <!-- Dark base gradient -->
+      <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%"   stop-color="#000000"/>
+        <stop offset="40%"  stop-color="#060606"/>
+        <stop offset="70%"  stop-color="#0A0800"/>
+        <stop offset="100%" stop-color="#000000"/>
+      </linearGradient>
+      <!-- Gold radial glow -->
+      <radialGradient id="goldGlow1" cx="30%" cy="35%" r="45%">
+        <stop offset="0%" stop-color="rgba(212,175,55,0.1)"/>
+        <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
+      </radialGradient>
+      <radialGradient id="goldGlow2" cx="75%" cy="65%" r="40%">
+        <stop offset="0%" stop-color="rgba(212,175,55,0.07)"/>
+        <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
+      </radialGradient>
+    </defs>
+
+    <!-- Base fill -->
+    <rect width="100%" height="100%" fill="url(#bgGrad)"/>
+    <!-- Glow orbs -->
+    <rect width="100%" height="100%" fill="url(#goldGlow1)" style="animation:orbDrift1 18s ease-in-out infinite"/>
+    <rect width="100%" height="100%" fill="url(#goldGlow2)" style="animation:orbDrift2 22s ease-in-out infinite"/>
+
+    <!-- Fine grid lines (horizontal) -->
+    <g stroke="rgba(212,175,55,0.055)" stroke-width="0.5">
+      <line x1="0" y1="8.33%"  x2="100%" y2="8.33%"/>
+      <line x1="0" y1="16.66%" x2="100%" y2="16.66%"/>
+      <line x1="0" y1="25%"    x2="100%" y2="25%"/>
+      <line x1="0" y1="33.33%" x2="100%" y2="33.33%"/>
+      <line x1="0" y1="41.66%" x2="100%" y2="41.66%"/>
+      <line x1="0" y1="50%"    x2="100%" y2="50%"/>
+      <line x1="0" y1="58.33%" x2="100%" y2="58.33%"/>
+      <line x1="0" y1="66.66%" x2="100%" y2="66.66%"/>
+      <line x1="0" y1="75%"    x2="100%" y2="75%"/>
+      <line x1="0" y1="83.33%" x2="100%" y2="83.33%"/>
+      <line x1="0" y1="91.66%" x2="100%" y2="91.66%"/>
+    </g>
+    <!-- Grid (vertical) -->
+    <g stroke="rgba(212,175,55,0.04)" stroke-width="0.5">
+      <line x1="8.33%"  y1="0" x2="8.33%"  y2="100%"/>
+      <line x1="16.66%" y1="0" x2="16.66%" y2="100%"/>
+      <line x1="25%"    y1="0" x2="25%"    y2="100%"/>
+      <line x1="33.33%" y1="0" x2="33.33%" y2="100%"/>
+      <line x1="41.66%" y1="0" x2="41.66%" y2="100%"/>
+      <line x1="50%"    y1="0" x2="50%"    y2="100%"/>
+      <line x1="58.33%" y1="0" x2="58.33%" y2="100%"/>
+      <line x1="66.66%" y1="0" x2="66.66%" y2="100%"/>
+      <line x1="75%"    y1="0" x2="75%"    y2="100%"/>
+      <line x1="83.33%" y1="0" x2="83.33%" y2="100%"/>
+      <line x1="91.66%" y1="0" x2="91.66%" y2="100%"/>
+    </g>
+
+    <!-- Glowing chart line — decorative financial graph -->
+    <defs>
+      <filter id="lineGlow">
+        <feGaussianBlur stdDeviation="3" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+      <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%"   stop-color="rgba(212,175,55,0)"/>
+        <stop offset="20%"  stop-color="rgba(212,175,55,0.5)"/>
+        <stop offset="60%"  stop-color="rgba(240,208,96,0.7)"/>
+        <stop offset="100%" stop-color="rgba(212,175,55,0)"/>
+      </linearGradient>
+      <linearGradient id="lineGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%"   stop-color="rgba(212,175,55,0)"/>
+        <stop offset="30%"  stop-color="rgba(212,175,55,0.3)"/>
+        <stop offset="80%"  stop-color="rgba(212,175,55,0.45)"/>
+        <stop offset="100%" stop-color="rgba(212,175,55,0)"/>
+      </linearGradient>
+    </defs>
+
+    <!-- Primary chart line -->
+    <polyline
+      points="0,85% 10%,78% 18%,72% 25%,76% 33%,65% 40%,58% 48%,62% 55%,50% 63%,44% 70%,48% 78%,35% 86%,28% 93%,32% 100%,24%"
+      fill="none"
+      stroke="url(#lineGrad)"
+      stroke-width="2"
+      filter="url(#lineGlow)"
+    />
+    <!-- Secondary ghost line -->
+    <polyline
+      points="0,88% 12%,83% 20%,80% 28%,82% 36%,74% 44%,69% 52%,72% 60%,63% 68%,57% 76%,61% 84%,50% 92%,44% 100%,40%"
+      fill="none"
+      stroke="url(#lineGrad2)"
+      stroke-width="1.2"
+      opacity="0.5"
+      filter="url(#lineGlow)"
+    />
+
+    <!-- Dot markers on main line -->
+    <g fill="var(--gold)" opacity="0.7" filter="url(#lineGlow)">
+      <circle cx="33%"  cy="65%" r="4"/>
+      <circle cx="55%"  cy="50%" r="3.5"/>
+      <circle cx="78%"  cy="35%" r="4"/>
+    </g>
+  </svg>
+</div>
+
+<!-- ── GRAIN OVERLAY ─────────────────────────────────────────── -->
+<div id="grain"></div>
+
+<!-- ── CURSOR SPOTLIGHT ────────────────────────────────────────── -->
+<div id="cursor-spotlight"></div>
+
+<!-- ── FLOATING FINANCE CARDS ───────────────────────────────── -->
+<div id="floating-cards">
+
+  <!-- Trust Score -->
+  <div class="fc" id="fc-trust">
+    <div class="fc-orb-row">
+      <div class="trust-orb" id="trust-orb">
+        <div class="trust-orb-core"></div>
+        <div class="trust-orb-ring"></div>
+        <div class="trust-orb-ring trust-orb-ring-inner"></div>
+      </div>
+      <div class="fc-orb-metrics">
+        <div class="fc-label">Trust Score</div>
+        <div class="fc-score fc-score-counter">
+          <span id="trust-score-value" data-target="742">0</span>
+        </div>
+        <div class="fc-sub" id="fc-risk-tier">Excellent &middot; Top 8%</div>
+      </div>
+    </div>
+    <div class="fc-segs">
+      <div class="fc-seg">
+        <div class="fc-seg-bar" id="seg-discipline" style="background:#D4AF37"></div>
+        <div class="fc-seg-lbl">Pay</div>
+      </div>
+      <div class="fc-seg">
+        <div class="fc-seg-bar" id="seg-liquidity" style="background:rgba(212,175,55,0.6)"></div>
+        <div class="fc-seg-lbl">Credit</div>
+      </div>
+      <div class="fc-seg">
+        <div class="fc-seg-bar" id="seg-stability" style="background:rgba(212,175,55,0.4)"></div>
+        <div class="fc-seg-lbl">Income</div>
+      </div>
+      <div class="fc-seg">
+        <div class="fc-seg-bar" id="seg-asset" style="background:rgba(212,175,55,0.22)"></div>
+        <div class="fc-seg-lbl">Alt</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Investment Chart -->
+  <div class="fc" id="fc-invest">
+    <div class="fc-label">Investment Returns</div>
+    <div class="chart-bars">
+      <div class="chart-bar" style="height:52%"></div>
+      <div class="chart-bar" style="height:68%"></div>
+      <div class="chart-bar" style="height:44%"></div>
+      <div class="chart-bar" style="height:80%"></div>
+      <div class="chart-bar" style="height:60%"></div>
+      <div class="chart-bar" style="height:90%"></div>
+      <div class="chart-bar" style="height:74%"></div>
+    </div>
+    <div class="chart-label-row">
+      <span class="chart-month">NOV</span>
+      <span class="chart-month">DEC</span>
+      <span class="chart-month">JAN</span>
+      <span class="chart-month">FEB</span>
+      <span class="chart-month">MAR</span>
+      <span class="chart-month">APR</span>
+      <span class="chart-month">MAY</span>
+    </div>
+  </div>
+
+  <!-- Analytics Card -->
+  <div class="fc" id="fc-analytics">
+    <div class="fc-label">Financial Health</div>
+    <div class="anal-row">
+      <div class="anal-left">
+        <div class="anal-dot" style="background:#D4AF37"></div>
+        <div class="anal-name">Liquidity</div>
+      </div>
+      <div class="anal-val" id="anal-liquidity">—</div>
+    </div>
+    <div class="anal-row">
+      <div class="anal-left">
+        <div class="anal-dot" style="background:rgba(212,175,55,0.65)"></div>
+        <div class="anal-name">Discipline</div>
+      </div>
+      <div class="anal-val" id="anal-discipline">—</div>
+    </div>
+    <div class="anal-row">
+      <div class="anal-left">
+        <div class="anal-dot" style="background:rgba(212,175,55,0.4)"></div>
+        <div class="anal-name">Stability</div>
+      </div>
+      <div class="anal-val" id="anal-stability">—</div>
+    </div>
+    <div class="anal-row">
+      <div class="anal-left">
+        <div class="anal-dot" style="background:rgba(212,175,55,0.25)"></div>
+        <div class="anal-name">Asset Score</div>
+      </div>
+      <div class="anal-val" id="anal-asset">—</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── NAVBAR ─────────────────────────────────────────────────── -->
+<nav id="navbar">
+  <a href="luxury-login.html" class="nav-logo">
+    <div class="nav-logo-mark">
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+        <polygon points="10,2 18,6 18,14 10,18 2,14 2,6" stroke="#D4AF37" stroke-width="1.5" stroke-linejoin="round"/>
+        <polygon points="10,5 15,8 15,12 10,15 5,12 5,8" fill="rgba(212,175,55,0.25)" stroke="#D4AF37" stroke-width="1" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <span class="nav-logo-text">TrustMetric</span>
+  </a>
+
+  <button class="nav-cta" onclick="location.href='luxury-login.html'">Sign In</button>
+</nav>
+
+<!-- ── HERO SECTION ───────────────────────────────────────────── -->
+<section id="hero">
+
+  <div id="glass-card">
+
+    <div class="hero-badge" id="hero-badge">
+      <div class="badge-pulse"></div>
+      Now in Public Beta &mdash; AI-Powered Scoring
+    </div>
+
+    <h1 id="hero-title">
+      <span class="title-shimmer">Financial Identity,</span><br>
+      <span class="title-white">Reimagined.</span>
+    </h1>
+
+    <p id="hero-sub">
+      Build Financial Trust Beyond Traditional Credit.<br>
+      TrustMetric maps your full financial story — not just a number.
+    </p>
+
+    <a href="luxury-login.html" id="cta-btn">
+      Get Started
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="9 18 15 12 9 6"/>
+      </svg>
+    </a>
+
+    <div id="hero-stats">
+      <div class="stat-item">
+        <div class="stat-val" id="stat-accuracy">98.4%</div>
+        <div class="stat-label">Score Accuracy</div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <div class="stat-val" id="stat-assessed">$2.1B+</div>
+        <div class="stat-label">Assessed</div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <div class="stat-val" id="stat-users">50K+</div>
+        <div class="stat-label">Active Users</div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <div class="stat-val" id="stat-speed">3.2s</div>
+        <div class="stat-label">Avg Decision</div>
+      </div>
+    </div>
+
+  </div><!-- /glass-card -->
+
+</section>
+
+<!-- ── MARQUEE STRIP ─────────────────────────────────────────── -->
+<div id="marquee-section">
+  <div class="marquee-track" id="marquee-track">
+    <!-- Items duplicated for seamless loop -->
+    <div class="marquee-item"><div class="marquee-dot"></div>Alternative Credit Scoring</div>
+    <div class="marquee-item"><div class="marquee-dot"></div>Financial Identity Verification</div>
+    <div class="marquee-item"><div class="marquee-dot"></div>Real-Time Risk Assessment</div>
+    <div class="marquee-item"><div class="marquee-dot"></div>Behavioral Finance Data</div>
+    <div class="marquee-item"><div class="marquee-dot"></div>Open Banking Integration</div>
+    <div class="marquee-item"><div class="marquee-dot"></div>Fraud Detection AI</div>
+    <div class="marquee-item"><div class="marquee-dot"></div>Alternative Credit Scoring</div>
+    <div class="marquee-item"><div class="marquee-dot"></div>Financial Identity Verification</div>
+    <div class="marquee-item"><div class="marquee-dot"></div>Real-Time Risk Assessment</div>
+    <div class="marquee-item"><div class="marquee-dot"></div>Behavioral Finance Data</div>
+    <div class="marquee-item"><div class="marquee-dot"></div>Open Banking Integration</div>
+    <div class="marquee-item"><div class="marquee-dot"></div>Fraud Detection AI</div>
+  </div>
+</div>
+
+<!-- ── FOOTER ──────────────────────────────────────────────────── -->
+<footer id="footer">
+  <div class="footer-logo">TrustMetric</div>
+  <div class="footer-copy">&copy; 2026 TrustMetric Inc. All rights reserved.</div>
+  <div class="footer-links">
+    <a href="luxury-login.html">Terms</a>
+    <a href="luxury-login.html">Privacy</a>
+    <a href="luxury-login.html">Security</a>
+    <a href="luxury-login.html">Contact</a>
+  </div>
+</footer>
+
+<!-- ── SCROLL INDICATOR ───────────────────────────────────────── -->
+<div id="scroll-indicator" onclick="document.getElementById('marquee-section').scrollIntoView({behavior:'smooth'})">
+  <span class="scroll-text">Scroll</span>
+  <svg class="scroll-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.6)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="6 9 12 15 18 9"/>
+  </svg>
+</div>
+
+<!-- ══════════════════════════════════════════════
+   JAVASCRIPT
+══════════════════════════════════════════════ -->
+<script>
+/* ── FINANCIAL NETWORK BACKGROUND (WebGL with graceful fallback) ─ */
+let networkGl = null;
+let networkProgram = null;
+let networkBuffers = null;
+let networkUniforms = null;
+let networkAnimId = null;
+let networkTime = 0;
+let networkMouse = { x: 0, y: 0 };
+
+function createShader(gl, type, source) {
+  const shader = gl.createShader(type);
+  gl.shaderSource(shader, source);
+  gl.compileShader(shader);
+  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    console.warn('Shader compile error:', gl.getShaderInfoLog(shader));
+    gl.deleteShader(shader);
+    return null;
+  }
+  return shader;
+}
+
+function createProgram(gl, vsSource, fsSource) {
+  const vs = createShader(gl, gl.VERTEX_SHADER, vsSource);
+  const fs = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
+  if (!vs || !fs) return null;
+  const program = gl.createProgram();
+  gl.attachShader(program, vs);
+  gl.attachShader(program, fs);
+  gl.linkProgram(program);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    console.warn('Program link error:', gl.getProgramInfoLog(program));
+    gl.deleteProgram(program);
+    return null;
+  }
+  return program;
+}
+
+function initNetworkBackground() {
+  const canvas = document.getElementById('bg-webgl');
+  if (!canvas) return;
+
+  const gl = canvas.getContext('webgl', { antialias: true, alpha: true }) ||
+             canvas.getContext('experimental-webgl', { antialias: true, alpha: true });
+  if (!gl) {
+    // Graceful degradation: fallback to static SVG background only.
+    return;
+  }
+
+  networkGl = gl;
+
+  const resize = () => {
+    const dpr = Math.min(window.devicePixelRatio || 1.5, 2);
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    gl.viewport(0, 0, canvas.width, canvas.height);
+  };
+  resize();
+  window.addEventListener('resize', resize);
+
+  const vsSource = `
+    attribute vec3 aPosition;
+    attribute float aKind;
+    uniform mat4 uMatrix;
+    varying float vKind;
+    void main() {
+      vKind = aKind;
+      gl_Position = uMatrix * vec4(aPosition, 1.0);
+      gl_PointSize = mix(2.0, 4.5, vKind);
+    }
+  `;
+
+  const fsSource = `
+    precision mediump float;
+    varying float vKind;
+    void main() {
+      float intensity = mix(0.35, 1.0, vKind);
+      vec2 uv = gl_PointCoord - 0.5;
+      float dist = length(uv);
+      float alpha = smoothstep(0.5, 0.0, dist);
+      vec3 gold = vec3(0.83, 0.69, 0.25);
+      gl_FragColor = vec4(gold * intensity, alpha * intensity);
+    }
+  `;
+
+  const program = createProgram(gl, vsSource, fsSource);
+  if (!program) return;
+  networkProgram = program;
+
+  const nodeCount = 26;
+  const nodes = [];
+  for (let i = 0; i < nodeCount; i++) {
+    const angle = (i / nodeCount) * Math.PI * 2;
+    const radius = 0.35 + Math.random() * 0.3;
+    const y = (Math.random() - 0.5) * 0.5;
+    nodes.push({
+      x: Math.cos(angle) * radius,
+      y,
+      z: Math.sin(angle) * radius * 0.7
+    });
+  }
+
+  const linePositions = [];
+  const kinds = [];
+  const edges = [];
+  for (let i = 0; i < nodeCount; i++) {
+    const a = nodes[i];
+    const bIndex = (i + 1) % nodeCount;
+    const b = nodes[bIndex];
+    edges.push([i, bIndex]);
+    linePositions.push(a.x, a.y, a.z, b.x, b.y, b.z);
+    kinds.push(0.0, 0.0);
+
+    const extraIndex = (i + 5) % nodeCount;
+    const c = nodes[extraIndex];
+    edges.push([i, extraIndex]);
+    linePositions.push(a.x, a.y, a.z, c.x, c.y, c.z);
+    kinds.push(0.0, 0.0);
+  }
+
+  const nodePositions = [];
+  for (let i = 0; i < nodeCount; i++) {
+    const n = nodes[i];
+    nodePositions.push(n.x, n.y, n.z);
+  }
+
+  const particlePerEdge = 2;
+  const particles = [];
+  for (let e = 0; e < edges.length; e++) {
+    for (let p = 0; p < particlePerEdge; p++) {
+      particles.push({
+        edgeIndex: e,
+        t: Math.random(),
+        speed: 0.05 + Math.random() * 0.04
+      });
+    }
+  }
+
+  const particlePositions = new Float32Array(particles.length * 3);
+
+  const posBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(linePositions), gl.STATIC_DRAW);
+
+  const kindBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, kindBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(kinds), gl.STATIC_DRAW);
+
+  const nodeBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, nodeBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(nodePositions), gl.STATIC_DRAW);
+
+  const particleBuffer = gl.createBuffer();
+
+  gl.useProgram(program);
+  const aPosition = gl.getAttribLocation(program, 'aPosition');
+  const aKind = gl.getAttribLocation(program, 'aKind');
+  const uMatrix = gl.getUniformLocation(program, 'uMatrix');
+
+  networkBuffers = {
+    posBuffer,
+    kindBuffer,
+    nodeBuffer,
+    particleBuffer,
+    lineVertexCount: linePositions.length / 3,
+    nodeVertexCount: nodePositions.length / 3,
+    particles,
+    particlePositions
+  };
+  networkUniforms = { aPosition, aKind, uMatrix, edges, nodes };
+
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+  gl.clearColor(0, 0, 0, 0);
+
+  function animateNetwork() {
+    if (!networkGl) return;
+    networkTime += 0.006;
+    const w = canvas.width;
+    const h = canvas.height;
+    const aspect = w / h;
+
+    const baseRot = 0.25 + networkTime * 0.35;
+    const mouseInfluenceX = (networkMouse.x - 0.5) * 0.25;
+    const mouseInfluenceY = (networkMouse.y - 0.5) * 0.18;
+    const rotY = baseRot + mouseInfluenceX;
+    const rotX = -0.2 + mouseInfluenceY;
+
+    const cosY = Math.cos(rotY);
+    const sinY = Math.sin(rotY);
+    const cosX = Math.cos(rotX);
+    const sinX = Math.sin(rotX);
+
+    const zOffset = 2.2;
+
+    const m00 = cosY / aspect;
+    const m01 = 0;
+    const m02 = sinY;
+    const m10 = sinX * sinY;
+    const m11 = cosX;
+    const m12 = -sinX * cosY;
+    const m20 = -cosX * sinY;
+    const m21 = sinX;
+    const m22 = cosX * cosY;
+
+    const matrix = new Float32Array([
+      m00, m10, m20, 0,
+      m01, m11, m21, 0,
+      m02, m12, m22, 0,
+      0,   0,   -zOffset, 1
+    ]);
+
+    gl.viewport(0, 0, w, h);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    gl.useProgram(program);
+    gl.uniformMatrix4fv(uMatrix, false, matrix);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
+    gl.enableVertexAttribArray(aPosition);
+    gl.vertexAttribPointer(aPosition, 3, gl.FLOAT, false, 0, 0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, kindBuffer);
+    gl.enableVertexAttribArray(aKind);
+    gl.vertexAttribPointer(aKind, 1, gl.FLOAT, false, 0, 0);
+
+    gl.lineWidth(1);
+    gl.drawArrays(gl.LINES, 0, networkBuffers.lineVertexCount);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, nodeBuffer);
+    gl.enableVertexAttribArray(aPosition);
+    gl.vertexAttribPointer(aPosition, 3, gl.FLOAT, false, 0, 0);
+    gl.vertexAttrib1f(aKind, 0.6);
+    gl.drawArrays(gl.POINTS, 0, networkBuffers.nodeVertexCount);
+
+    const particles = networkBuffers.particles;
+    const particlePositions = networkBuffers.particlePositions;
+    const { edges, nodes } = networkUniforms;
+
+    for (let i = 0; i < particles.length; i++) {
+      const p = particles[i];
+      p.t += p.speed * 0.008;
+      if (p.t > 1) p.t -= 1;
+      const edge = edges[p.edgeIndex];
+      const a = nodes[edge[0]];
+      const b = nodes[edge[1]];
+      const x = a.x + (b.x - a.x) * p.t;
+      const y = a.y + (b.y - a.y) * p.t;
+      const z = a.z + (b.z - a.z) * p.t;
+      const base = i * 3;
+      particlePositions[base] = x;
+      particlePositions[base + 1] = y;
+      particlePositions[base + 2] = z;
+    }
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, particleBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, particlePositions, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(aPosition);
+    gl.vertexAttribPointer(aPosition, 3, gl.FLOAT, false, 0, 0);
+    gl.vertexAttrib1f(aKind, 1.0);
+    gl.drawArrays(gl.POINTS, 0, particles.length);
+
+    networkAnimId = requestAnimationFrame(animateNetwork);
+  }
+
+  networkAnimId = requestAnimationFrame(animateNetwork);
+}
+
+/* ── CURSOR SPOTLIGHT LAYER ─────────────────────────────────────── */
+const cursorSpotlight = document.getElementById('cursor-spotlight');
+if (cursorSpotlight) {
+  cursorSpotlight.style.position = 'fixed';
+  cursorSpotlight.style.inset = '0';
+  cursorSpotlight.style.pointerEvents = 'none';
+  cursorSpotlight.style.zIndex = '20';
+  cursorSpotlight.style.mixBlendMode = 'screen';
+  cursorSpotlight.style.opacity = '0';
+  cursorSpotlight.innerHTML = '';
+  const glow = document.createElement('div');
+  glow.style.position = 'absolute';
+  glow.style.width = '420px';
+  glow.style.height = '420px';
+  glow.style.borderRadius = '50%';
+  glow.style.background = 'radial-gradient(circle at center, rgba(212,175,55,0.38) 0%, rgba(212,175,55,0.14) 32%, transparent 70%)';
+  glow.style.filter = 'blur(3px)';
+  glow.style.transform = 'translate(-50%, -50%)';
+  glow.id = 'cursor-spotlight-glow';
+  cursorSpotlight.appendChild(glow);
+}
+
+/* ── PARALLAX BACKGROUND ──────────────────────────────────────── */
+const bgLayer = document.getElementById('bg-layer');
+
+window.addEventListener('scroll', () => {
+  const scrollY = window.scrollY;
+  // Subtle parallax: bg moves slower than content
+  bgLayer.style.transform = `translateY(${scrollY * 0.3}px)`;
+}, { passive: true });
+
+/* ── NAVBAR SCROLL STATE ─────────────────────────────────────── */
+const navbar = document.getElementById('navbar');
+
+window.addEventListener('scroll', () => {
+  navbar.classList.toggle('scrolled', window.scrollY > 40);
+}, { passive: true });
+
+/* ── SCROLL INDICATOR HIDE ───────────────────────────────────── */
+const scrollIndicator = document.getElementById('scroll-indicator');
+
+window.addEventListener('scroll', () => {
+  scrollIndicator.classList.toggle('hide', window.scrollY > 80);
+}, { passive: true });
+
+/* ── BOOT SEQUENCE (Framer-Motion-style stagger) ─────────────── */
+function bootSequence() {
+  // Step 1: Navbar slides in
+  setTimeout(() => {
+    navbar.classList.add('show');
+  }, 100);
+
+  // Step 2: Floating cards fade in
+  setTimeout(() => {
+    document.querySelectorAll('.fc').forEach(fc => fc.classList.add('show'));
+  }, 300);
+
+  // Step 3: Glass card appears
+  setTimeout(() => {
+    document.getElementById('glass-card').classList.add('show');
+  }, 350);
+
+  // Step 4: Badge, title, sub, CTA staggered
+  setTimeout(() => {
+    document.getElementById('hero-badge').classList.add('show');
+  }, 550);
+
+  setTimeout(() => {
+    document.getElementById('hero-title').classList.add('show');
+  }, 650);
+
+  setTimeout(() => {
+    document.getElementById('hero-sub').classList.add('show');
+  }, 780);
+
+  setTimeout(() => {
+    document.getElementById('cta-btn').classList.add('show');
+  }, 880);
+
+  setTimeout(() => {
+    document.getElementById('hero-stats').classList.add('show');
+  }, 980);
+
+  // Step 5: Scroll indicator
+  setTimeout(() => {
+    scrollIndicator.classList.add('show');
+  }, 1200);
+}
+
+/* ── MOUSE PARALLAX on glass card ───────────────────────────── */
+const glassCard = document.getElementById('glass-card');
+let mouseX = 0, mouseY = 0;
+let cardX = 0, cardY = 0;
+let rafId = null;
+
+document.addEventListener('mousemove', (e) => {
+  const rect = glassCard.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  mouseX = (e.clientX - cx) / (window.innerWidth / 2);
+  mouseY = (e.clientY - cy) / (window.innerHeight / 2);
+});
+
+function animateCard() {
+  cardX += (mouseX * 6 - cardX) * 0.06;
+  cardY += (mouseY * 4 - cardY) * 0.06;
+  glassCard.style.transform = `
+    translateY(0) scale(1)
+    rotateY(${cardX}deg)
+    rotateX(${-cardY}deg)
+  `;
+  rafId = requestAnimationFrame(animateCard);
+}
+
+// Only run mouse parallax on desktop
+if (window.innerWidth > 768) {
+  animateCard();
+}
+
+/* ── FLOATING CARDS + CURSOR INTERACTION ───────────────────────── */
+const interactiveState = {
+  pointerX: 0.5,
+  pointerY: 0.5,
+  easedX: 0.5,
+  easedY: 0.5
+};
+
+function handlePointerMove(e) {
+  const x = e.clientX / window.innerWidth;
+  const y = e.clientY / window.innerHeight;
+  interactiveState.pointerX = x;
+  interactiveState.pointerY = y;
+  networkMouse.x = x;
+  networkMouse.y = y;
+
+  if (cursorSpotlight) {
+    const glowEl = document.getElementById('cursor-spotlight-glow');
+    if (glowEl) {
+      glowEl.style.left = e.clientX + 'px';
+      glowEl.style.top = e.clientY + 'px';
+    }
+    cursorSpotlight.style.opacity = '1';
+  }
+}
+
+document.addEventListener('mousemove', (e) => {
+  handlePointerMove(e);
+}, { passive: true });
+
+function animateFloatingCards() {
+  interactiveState.easedX += (interactiveState.pointerX - interactiveState.easedX) * 0.08;
+  interactiveState.easedY += (interactiveState.pointerY - interactiveState.easedY) * 0.08;
+
+  const dx = (interactiveState.easedX - 0.5) * 2;
+  const dy = (interactiveState.easedY - 0.5) * 2;
+
+  const fcTrust = document.getElementById('fc-trust');
+  const fcInvest = document.getElementById('fc-invest');
+  const fcAnal = document.getElementById('fc-analytics');
+
+  const baseFloat = Math.sin(performance.now() * 0.0012);
+  const baseFloatSmall = Math.sin(performance.now() * 0.0015 + 1.2);
+
+  if (fcTrust) {
+    fcTrust.style.transform = `translate3d(${dx * 9}px, ${dy * 7 + baseFloat * 6}px, 0) rotateY(${dx * 3}deg)`;
+  }
+  if (fcInvest) {
+    fcInvest.style.transform = `translate3d(${dx * -7}px, ${dy * 5 + baseFloatSmall * 5}px, 0) rotateY(${dx * -2.5}deg)`;
+  }
+  if (fcAnal) {
+    fcAnal.style.transform = `translate3d(${dx * -6}px, ${dy * -6 + Math.sin(performance.now() * 0.0018) * 5}px, 0) rotateY(${dx * -2}deg)`;
+  }
+
+  requestAnimationFrame(animateFloatingCards);
+}
+
+requestAnimationFrame(animateFloatingCards);
+
+/* ── TRUST SCORE ORB ANIMATION ─────────────────────────────────── */
+function animateTrustScoreOrb() {
+  const orb = document.getElementById('trust-orb');
+  const scoreEl = document.getElementById('trust-score-value');
+  if (!orb || !scoreEl) return;
+
+  orb.classList.add('active');
+
+  const target = parseInt(scoreEl.getAttribute('data-target') || '0', 10);
+  let current = 0;
+  const duration = 2200;
+  const start = performance.now();
+
+  function tick(now) {
+    const progress = Math.min((now - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    current = Math.round(target * eased);
+    scoreEl.textContent = current;
+    if (progress < 1) {
+      requestAnimationFrame(tick);
+    }
+  }
+
+  requestAnimationFrame(tick);
+
+  orb.addEventListener('mousemove', (e) => {
+    const rect = orb.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dx = (e.clientX - cx) / rect.width;
+    const dy = (e.clientY - cy) / rect.height;
+    orb.style.transform = `scale(1.02) rotateX(${dy * -10}deg) rotateY(${dx * 10}deg)`;
+  });
+
+  orb.addEventListener('mouseleave', () => {
+    orb.style.transform = 'scale(1)';
+  });
+}
+
+/* ── SCROLL DEPTH EFFECTS ──────────────────────────────────────── */
+function setupScrollDepthEffects() {
+  const hero = document.getElementById('hero');
+  const floatingCards = document.getElementById('floating-cards');
+  window.addEventListener('scroll', () => {
+    const y = window.scrollY;
+    const depth = Math.min(y / 480, 1);
+    if (hero) {
+      hero.style.opacity = String(1 - depth * 0.18);
+      hero.style.transform = `translateY(${depth * -12}px)`;
+    }
+    if (floatingCards) {
+      floatingCards.style.transform = `translateY(${depth * -24}px) scale(${1 + depth * 0.04})`;
+    }
+  }, { passive: true });
+}
+
+/* ── PAGE TRANSITION TO LOGIN ────────────────────────────────── */
+function setupPageTransitions() {
+  const overlay = document.getElementById('page-transition');
+  if (!overlay) return;
+
+  // Intercept all links pointing to luxury-login.html
+  document.addEventListener('click', (e) => {
+    const anchor = e.target.closest('a[href="luxury-login.html"]');
+    const btn = e.target.closest('button[onclick*="luxury-login"]');
+
+    if (anchor) {
+      e.preventDefault();
+      overlay.classList.add('fade-out');
+      setTimeout(() => {
+        window.location.href = 'luxury-login.html';
+      }, 450);
+      return;
+    }
+
+    if (btn) {
+      // Already handled by onclick, but override for smooth transition
+      btn.removeAttribute('onclick');
+      overlay.classList.add('fade-out');
+      setTimeout(() => {
+        window.location.href = 'luxury-login.html';
+      }, 450);
+    }
+  });
+}
+
+/* ── INIT ───────────────────────────────────────────────────── */
+function initInteractiveLayers() {
+  animateTrustScoreOrb();
+  setupScrollDepthEffects();
+}
+
+window.addEventListener('load', () => {
+  bootSequence();
+  initNetworkBackground();
+  initInteractiveLayers();
+  setupPageTransitions();
+});
+
+/* ── LIVE DEMO DATA FROM BACKEND ───────────────────────────────── */
+(function fetchLiveDemoData() {
+  const API_BASE = 'http://localhost:8000';
+
+  // Tier → display label mapping (mirrors dashboard logic)
+  const TIER_LABELS = {
+    'Excellent':     'Excellent · Top 5%',
+    'Low Risk':      'Low Risk · Top 15%',
+    'Moderate Risk': 'Moderate Risk',
+    'High Risk':     'High Risk',
+    'Very High Risk':'Very High Risk',
+  };
+
+  function animateCounterTo(el, target, duration) {
+    if (!el) return;
+    let start = null;
+    const from = parseInt(el.textContent) || 0;
+    function step(ts) {
+      if (!start) start = ts;
+      const p = Math.min((ts - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(from + (target - from) * eased);
+      if (p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  function applyLiveData(r) {
+    const bd   = r.score_breakdown || {};
+    const loan = r.loan_eligibility || {};
+    const score = r.trust_score || 742;
+
+    // ── Trust score orb ──────────────────────────────────────────
+    const scoreEl = document.getElementById('trust-score-value');
+    if (scoreEl) {
+      scoreEl.setAttribute('data-target', score);
+      animateCounterTo(scoreEl, score, 2200);
+    }
+
+    // ── Risk tier sub-label ──────────────────────────────────────
+    const tierEl = document.getElementById('fc-risk-tier');
+    if (tierEl) tierEl.textContent = TIER_LABELS[r.risk_tier] || r.risk_tier || 'Excellent · Top 5%';
+
+    // ── Segment bar heights (0–100 → 20%–100%) ──────────────────
+    function segH(v) { return (20 + ((v || 0) / 100) * 80) + '%'; }
+    const segMap = {
+      'seg-discipline': bd.discipline,
+      'seg-liquidity':  bd.liquidity,
+      'seg-stability':  bd.stability,
+      'seg-asset':      bd.asset_protection,
+    };
+    Object.entries(segMap).forEach(([id, val]) => {
+      const el = document.getElementById(id);
+      if (el) el.style.height = segH(val);
+    });
+
+    // ── Analytics floating card ──────────────────────────────────
+    const fmt = v => v != null ? Math.round(v) + '/100' : '—';
+    const analMap = {
+      'anal-liquidity':  bd.liquidity,
+      'anal-discipline': bd.discipline,
+      'anal-stability':  bd.stability,
+      'anal-asset':      bd.asset_protection,
+    };
+    Object.entries(analMap).forEach(([id, val]) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = fmt(val);
+    });
+
+    // ── Hero stats ───────────────────────────────────────────────
+    // Score accuracy derived from confidence_level
+    const confMap = { 'High': '97.8%', 'Medium': '91.2%', 'Low': '82.4%' };
+    const accuracyEl = document.getElementById('stat-accuracy');
+    if (accuracyEl && r.confidence_level) {
+      accuracyEl.textContent = confMap[r.confidence_level] || '97.8%';
+    }
+
+    // Loan assessed — show recommended loan amount
+    const assessedEl = document.getElementById('stat-assessed');
+    if (assessedEl && loan.recommended_loan) {
+      const inr = '₹' + Number(loan.recommended_loan).toLocaleString('en-IN');
+      assessedEl.textContent = inr;
+      // Update label text to match
+      const assessedLabel = assessedEl.nextElementSibling;
+      if (assessedLabel) assessedLabel.textContent = 'Loan Eligible';
+    }
+
+    // Repayment reliability → users stat
+    const usersEl = document.getElementById('stat-users');
+    if (usersEl && loan.repayment_reliability) {
+      usersEl.textContent = loan.repayment_reliability + '%';
+      const usersLabel = usersEl.nextElementSibling;
+      if (usersLabel) usersLabel.textContent = 'Repay Rate';
+    }
+
+    // Risk tier → speed stat
+    const speedEl = document.getElementById('stat-speed');
+    if (speedEl) speedEl.textContent = r.risk_tier || 'Low Risk';
+    const speedLabel = speedEl ? speedEl.nextElementSibling : null;
+    if (speedLabel) speedLabel.textContent = 'Risk Tier';
+  }
+
+  // Call POST /calculate-trust-score/good_user — uses the simulated bank connector
+  // Falls back silently on any error (keeps static values)
+  fetch(API_BASE + '/calculate-trust-score/good_user', { method: 'POST' })
+    .then(res => res.ok ? res.json() : Promise.reject('not ok'))
+    .then(data => applyLiveData(data))
+    .catch(() => {
+      // Backend not running — static fallback values remain, no error shown
+    });
+})();
+
+/* ── AUTH-AWARE CTA ── */
+(function() {
+  if (localStorage.getItem('tm_user_id')) {
+    const cta = document.getElementById('cta-btn');
+    if (cta) cta.textContent = 'Go to Dashboard →';
+  }
+})();
+
+</script>
+
+</body>
+</html>

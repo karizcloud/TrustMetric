@@ -1,0 +1,81 @@
+# ============================================================
+# TrustMetric — Alternative Financial Trust Score System
+# requirements.txt
+# ============================================================
+#
+# INSTALL ALL AT ONCE:
+#   pip install -r requirements.txt
+#
+# MINIMUM INSTALL (core features only, no AI):
+#   pip install fastapi uvicorn[standard] cryptography python-dotenv
+#
+# Python version required: 3.10 or higher (tested on 3.12)
+# ============================================================
+
+
+# ------------------------------------------------------------
+# CORE — Required. App will NOT start without these.
+# ------------------------------------------------------------
+
+# Web framework — handles all HTTP endpoints, request validation,
+# serves HTML pages, and auto-generates /docs Swagger UI
+fastapi>=0.115.0
+
+# ASGI server — actually runs the FastAPI app
+# Use:  uvicorn main:app --reload
+# The [standard] extra includes websockets + watchfiles for --reload
+uvicorn[standard]>=0.30.0
+
+# Data validation — validates every API request and response shape
+# Pydantic v2 is required (v1 will NOT work — different API)
+pydantic>=2.5.0
+
+# Encryption and password hashing — required for:
+#   - Fernet encryption of stored score data (AES-128-CBC + HMAC)
+#   - PBKDF2-HMAC-SHA256 password hashing (260,000 iterations)
+cryptography>=42.0.0
+
+# .env file loading — reads SCORE_ENCRYPTION_KEY, GEMINI_API_KEY,
+# GROQ_API_KEY from the .env file into environment variables
+python-dotenv>=1.0.0
+
+
+# ------------------------------------------------------------
+# AI FEATURES — Optional but strongly recommended.
+# Without these, the chatbot and financial advice text will show
+# "AI unavailable. Configure GEMINI_API_KEY or GROQ_API_KEY."
+# All other features (score, loan, simulator, history) still work.
+# ------------------------------------------------------------
+
+# Google Gemini — primary AI provider for chatbot and advice
+# Get free API key: https://aistudio.google.com/app/apikey
+# Used in: ai_chatbot.py, advisor_engine.py (lazy import)
+google-generativeai>=0.7.0
+
+# Groq — fallback AI provider (free tier available, very fast)
+# Get free API key: https://console.groq.com/keys
+# Model used: llama3-70b-8192
+# Used in: ai_chatbot.py, advisor_engine.py (lazy import)
+groq>=0.13.0
+
+
+# ------------------------------------------------------------
+# STDLIB ONLY — The following are used but come built into
+# Python. You do NOT need to install these separately.
+# Listed here for documentation purposes only.
+# ------------------------------------------------------------
+
+# uuid        — generates unique score IDs (UUID4)
+# sqlite3     — SQLite database driver
+# hashlib     — SHA-256 for email hashing
+# statistics  — standard deviation for stability score calculation
+# copy        — deep copy for simulator (never mutates original data)
+# pathlib     — file path resolution
+# json        — JSON serialization/deserialization
+# os          — environment variable access
+# base64      — encoding for password hash storage
+# re          — regex for transaction description cleaning
+# datetime    — timestamp handling
+# typing      — type hints
+# enum        — score tier enumerations
+# textwrap    — AI prompt formatting

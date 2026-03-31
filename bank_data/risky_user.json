@@ -1,0 +1,30 @@
+{
+  "monthly_income": 32000,
+  "transactions": [
+    { "date": "2024-01-01", "merchant": "Part-time Salary",   "amount": 32000, "category": "income"     },
+    { "date": "2024-01-02", "merchant": "PG Accommodation",   "amount": 9000,  "category": "rent"       },
+    { "date": "2024-01-04", "merchant": "Zomato",             "amount": 4500,  "category": "lifestyle"  },
+    { "date": "2024-01-06", "merchant": "Local Kirana",       "amount": 2000,  "category": "grocery"    },
+    { "date": "2024-01-08", "merchant": "Swiggy Instamart",   "amount": 1800,  "category": "grocery"    },
+    { "date": "2024-01-09", "merchant": "Online Gaming",      "amount": 3000,  "category": "lifestyle"  },
+    { "date": "2024-01-11", "merchant": "Electricity Bill",   "amount": 900,   "category": "utility"    },
+    { "date": "2024-01-13", "merchant": "Pub & Bar",          "amount": 3500,  "category": "lifestyle"  },
+    { "date": "2024-01-15", "merchant": "Fashion Street",     "amount": 2800,  "category": "lifestyle"  },
+    { "date": "2024-01-17", "merchant": "Jio Prepaid",        "amount": 239,   "category": "utility"    },
+    { "date": "2024-01-19", "merchant": "OTT Bundle",         "amount": 999,   "category": "lifestyle"  },
+    { "date": "2024-01-21", "merchant": "Fast Food",          "amount": 1200,  "category": "lifestyle"  },
+    { "date": "2024-01-23", "merchant": "Vegetable Market",   "amount": 800,   "category": "grocery"    },
+    { "date": "2024-01-26", "merchant": "Weekend Trip",       "amount": 4200,  "category": "lifestyle"  },
+    { "date": "2024-01-28", "merchant": "Late Night Delivery","amount": 650,   "category": "lifestyle"  }
+  ],
+  "bill_payment_history": {
+    "total_bills": 24,
+    "bills_paid_on_time": 11
+  },
+  "emergency_savings": 2000,
+  "insurance": {
+    "has_health_insurance": false,
+    "has_life_insurance": false,
+    "has_vehicle_insurance": false
+  }
+}

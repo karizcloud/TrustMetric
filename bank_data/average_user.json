@@ -1,0 +1,30 @@
+{
+  "monthly_income": 55000,
+  "transactions": [
+    { "date": "2024-01-01", "merchant": "Infosys Salary",     "amount": 55000, "category": "income"     },
+    { "date": "2024-01-03", "merchant": "House Rent",         "amount": 14000, "category": "rent"       },
+    { "date": "2024-01-05", "merchant": "MSEB Electricity",   "amount": 1400,  "category": "utility"    },
+    { "date": "2024-01-07", "merchant": "D-Mart",             "amount": 4500,  "category": "grocery"    },
+    { "date": "2024-01-09", "merchant": "Zerodha SIP",        "amount": 3000,  "category": "investment" },
+    { "date": "2024-01-11", "merchant": "Zomato",             "amount": 2200,  "category": "lifestyle"  },
+    { "date": "2024-01-13", "merchant": "Jio Postpaid",       "amount": 699,   "category": "utility"    },
+    { "date": "2024-01-15", "merchant": "Reliance Fresh",     "amount": 2900,  "category": "grocery"    },
+    { "date": "2024-01-17", "merchant": "BookMyShow",         "amount": 800,   "category": "lifestyle"  },
+    { "date": "2024-01-19", "merchant": "Amazon Shopping",    "amount": 3500,  "category": "lifestyle"  },
+    { "date": "2024-01-21", "merchant": "LIC Premium",        "amount": 2500,  "category": "investment" },
+    { "date": "2024-01-23", "merchant": "More Supermarket",   "amount": 1800,  "category": "grocery"    },
+    { "date": "2024-01-25", "merchant": "Uber Rides",         "amount": 1500,  "category": "lifestyle"  },
+    { "date": "2024-01-27", "merchant": "Water Bill",         "amount": 350,   "category": "utility"    },
+    { "date": "2024-01-29", "merchant": "Hotstar Premium",    "amount": 299,   "category": "lifestyle"  }
+  ],
+  "bill_payment_history": {
+    "total_bills": 24,
+    "bills_paid_on_time": 19
+  },
+  "emergency_savings": 45000,
+  "insurance": {
+    "has_health_insurance": true,
+    "has_life_insurance": false,
+    "has_vehicle_insurance": false
+  }
+}

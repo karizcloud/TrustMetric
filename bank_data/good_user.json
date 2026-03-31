@@ -1,0 +1,31 @@
+{
+  "monthly_income": 120000,
+  "transactions": [
+    { "date": "2024-01-01", "merchant": "TCS Salary",         "amount": 120000, "category": "income"     },
+    { "date": "2024-01-03", "merchant": "HDFC Home Rent",     "amount": 22000,  "category": "rent"       },
+    { "date": "2024-01-05", "merchant": "BEST Electricity",   "amount": 1800,   "category": "utility"    },
+    { "date": "2024-01-06", "merchant": "Airtel Broadband",   "amount": 999,    "category": "utility"    },
+    { "date": "2024-01-08", "merchant": "Nature's Basket",    "amount": 4200,   "category": "grocery"    },
+    { "date": "2024-01-10", "merchant": "Zerodha SIP",        "amount": 15000,  "category": "investment" },
+    { "date": "2024-01-12", "merchant": "LIC Premium",        "amount": 6500,   "category": "investment" },
+    { "date": "2024-01-14", "merchant": "Swiggy",             "amount": 850,    "category": "lifestyle"  },
+    { "date": "2024-01-16", "merchant": "Big Basket",         "amount": 3100,   "category": "grocery"    },
+    { "date": "2024-01-18", "merchant": "Gold Bond SGB",      "amount": 10000,  "category": "investment" },
+    { "date": "2024-01-20", "merchant": "Netflix",            "amount": 649,    "category": "lifestyle"  },
+    { "date": "2024-01-22", "merchant": "NMMC Water Bill",    "amount": 450,    "category": "utility"    },
+    { "date": "2024-01-24", "merchant": "Amazon Shopping",    "amount": 1200,   "category": "lifestyle"  },
+    { "date": "2024-01-26", "merchant": "Reliance Fresh",     "amount": 2800,   "category": "grocery"    },
+    { "date": "2024-01-28", "merchant": "Mutual Fund Top-Up", "amount": 5000,   "category": "investment" },
+    { "date": "2024-01-30", "merchant": "Gym Membership",     "amount": 2000,   "category": "lifestyle"  }
+  ],
+  "bill_payment_history": {
+    "total_bills": 36,
+    "bills_paid_on_time": 36
+  },
+  "emergency_savings": 360000,
+  "insurance": {
+    "has_health_insurance": true,
+    "has_life_insurance": true,
+    "has_vehicle_insurance": true
+  }
+}

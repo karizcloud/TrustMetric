@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TrustMetric — Login</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23111'/%3E%3Cpolygon points='16,4 27,9 27,23 16,28 5,23 5,9' stroke='%23D4AF37' stroke-width='2' stroke-linejoin='round' fill='none'/%3E%3Cpolygon points='16,9 23,13 23,19 16,23 9,19 9,13' fill='rgba(212,175,55,0.3)' stroke='%23D4AF37' stroke-width='1.2' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+/* ── PAGE TRANSITION ─────────────────────────────────────────── */
+#page-transition {
+  position: fixed; inset: 0; z-index: 99999;
+  background: #000; opacity: 0; pointer-events: none;
+  transition: opacity 0.45s cubic-bezier(0.4,0,0.2,1);
+}
+#page-transition.fade-out { opacity: 1; pointer-events: all; }
+body { animation: pageEnter 0.5s ease forwards; }
+@keyframes pageEnter { from { opacity: 0; } to { opacity: 1; } }
+
+/* ── BACK NAV BUTTON ─────────────────────────────────────────── */
+#back-to-landing {
+  position: fixed; top: 20px; left: 20px; z-index: 200;
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(10,10,10,0.7); backdrop-filter: blur(12px);
+  border: 1px solid rgba(212,175,55,0.25); border-radius: 10px;
+  padding: 9px 16px; cursor: pointer;
+  font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 500;
+  color: rgba(212,175,55,0.85);
+  text-decoration: none;
+  transition: border-color 0.2s, box-shadow 0.2s, color 0.2s;
+}
+#back-to-landing:hover {
+  border-color: rgba(212,175,55,0.6);
+  box-shadow: 0 0 16px rgba(212,175,55,0.15);
+  color: #D4AF37;
+}
+#back-to-landing svg { flex-shrink: 0; }
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+/* ── RESET & VARS ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --gold:        #D4AF37;
+  --gold-deep:   #C9A227;
+  --gold-pale:   #F0D060;
+  --gold-dim:    rgba(212,175,55,0.15);
+  --gold-glow:   rgba(212,175,55,0.35);
+  --black:       #000000;
+  --charcoal:    #111111;
+  --charcoal-2:  #1A1A1A;
+  --charcoal-3:  #222222;
+  --white:       #FFFFFF;
+  --gray:        #6B7280;
+  --gray-light:  #9CA3AF;
+  --border-dark: rgba(212,175,55,0.18);
+  --font-display: 'Cormorant Garamond', serif;
+  --font-body:    'Outfit', sans-serif;
+}
+
+html, body {
+  height: 100%; width: 100%;
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  background: var(--black);
+  overflow-x: hidden;
+}
+
+/* ── BACKGROUND ANIMATION LAYER ─────────────────────────────── */
+#bg-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  will-change: transform;
+}
+
+#bg-webgl {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+#bg-layer svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+#grain {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.032;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+}
+
+#bg-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 40%, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.9) 60%),
+    linear-gradient(180deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.85) 100%);
+  backdrop-filter: blur(10px);
+}
+
+#cursor-spotlight {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  opacity: 0;
+}
+
+/* ── LAYOUT ──────────────────────────────────────────────────── */
+#app {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  position: relative;
+  z-index: 4;
+}
+
+/* ── LEFT PANEL ──────────────────────────────────────────────── */
+#left-panel {
+  flex: 1 1 50%;
+  max-width: 50%;
+  background: radial-gradient(ellipse at top, rgba(255,255,255,0.06) 0%, rgba(0,0,0,0.96) 45%, rgba(0,0,0,0.98) 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 48px 40px;
+  position: relative;
+  z-index: 2;
+  box-shadow:
+    0 24px 64px rgba(0,0,0,0.8),
+    0 0 0 1px rgba(212,175,55,0.18),
+    inset 0 1px 0 rgba(255,255,255,0.08);
+  min-width: 0;
+}
+
+#login-card {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 32px 0 24px;
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+
+#login-card.loaded {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Logo */
+.logo-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 40px;
+}
+
+.logo-mark {
+  width: 38px; height: 38px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #111 0%, #1A1A1A 100%);
+  border: 1px solid rgba(212,175,55,0.35);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 16px rgba(212,175,55,0.2);
+  flex-shrink: 0;
+}
+
+.logo-name {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.95);
+  letter-spacing: -0.3px;
+}
+
+/* Headings */
+.auth-heading {
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.92);
+  letter-spacing: -0.5px;
+  line-height: 1.15;
+  margin-bottom: 8px;
+}
+
+.auth-subtext {
+  font-size: 14px;
+  color: #A0A0A0;
+  font-weight: 300;
+  margin-bottom: 28px;
+}
+
+/* Tabs */
+.tab-row {
+  display: flex;
+  gap: 32px;
+  border-bottom: 1.5px solid rgba(212,175,55,0.18);
+  margin-bottom: 28px;
+  position: relative;
+}
+
+.tab-row::after {
+  content: '';
+  position: absolute;
+  bottom: -1.5px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--gold);
+  transition: left 0.25s ease-in-out, width 0.25s ease-in-out;
+  border-radius: 2px;
+}
+
+.tab-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  padding-bottom: 10px;
+  letter-spacing: 0.01em;
+  color: #9CA3AF;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1.5px;
+  transition: color 0.25s ease-in-out;
+  position: relative;
+}
+
+.tab-btn.active {
+  color: var(--gold);
+  border-bottom-color: var(--gold);
+}
+
+.tab-btn:not(.active):hover {
+  color: rgba(212,175,55,0.65);
+}
+
+/* Form */
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #A0A0A0;
+  letter-spacing: 0.02em;
+}
+
+.input-wrap {
+  position: relative;
+}
+
+.gold-input {
+  width: 100%;
+  padding: 13px 16px;
+  background: #050505;
+  border: 1.5px solid rgba(212,175,55,0.28);
+  border-radius: 10px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: #FFFFFF;
+  outline: none;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.gold-input::placeholder { color: #777777; }
+
+.gold-input:focus {
+  border-color: var(--gold);
+  background: #080808;
+  box-shadow: 0 0 0 1px rgba(212,175,55,0.4), 0 0 18px rgba(212,175,55,0.4);
+}
+
+.gold-input.has-icon { padding-right: 44px; }
+
+.pw-toggle {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9CA3AF;
+  display: flex;
+  align-items: center;
+  padding: 0;
+  transition: color 0.18s;
+}
+.pw-toggle:hover { color: #374151; }
+
+/* Remember + Forgot */
+.remember-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+  margin-bottom: 24px;
+}
+
+.remember-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #6B7280;
+  user-select: none;
+}
+
+.custom-checkbox {
+  width: 16px; height: 16px;
+  border-radius: 4px;
+  border: 1.5px solid #D1D5DB;
+  background: transparent;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.custom-checkbox.checked {
+  border-color: var(--gold);
+  background: var(--gold);
+}
+
+.forgot-link {
+  font-size: 13px;
+  color: var(--gold-deep);
+  font-weight: 500;
+  text-decoration: none;
+  transition: opacity 0.18s;
+}
+.forgot-link:hover { opacity: 0.75; }
+
+/* Primary button */
+.signin-btn {
+  width: 100%;
+  padding: 15px;
+  background: var(--charcoal);
+  color: var(--white);
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 500;
+  border: 1.5px solid #2a2a2a;
+  border-radius: 10px;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.25s ease;
+  margin-bottom: 20px;
+}
+
+.signin-btn::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(212,175,55,0) 0%, rgba(212,175,55,0) 100%);
+  transition: background 0.3s ease;
+}
+
+.signin-btn:hover {
+  transform: translateY(-2px);
+  border-color: var(--gold-deep);
+  box-shadow: 0 8px 32px rgba(212,175,55,0.28), 0 0 0 1px rgba(212,175,55,0.2);
+}
+
+.signin-btn:hover::before {
+  background: linear-gradient(135deg, rgba(212,175,55,0.12) 0%, rgba(201,162,39,0.08) 100%);
+}
+
+.signin-btn:active { transform: translateY(0); }
+
+/* Divider */
+/* Footer */
+.auth-footer {
+  text-align: center;
+  font-size: 11px;
+  color: #9CA3AF;
+}
+
+.auth-footer a {
+  color: #9CA3AF;
+  text-decoration: none;
+  transition: color 0.18s;
+}
+.auth-footer a:hover { color: #6B7280; }
+
+/* Hidden signup field */
+#field-name { display: none; }
+
+/* ── RIGHT PANEL ─────────────────────────────────────────────── */
+/* ── GOLD VERTICAL DIVIDER ───────────────────────────────────── */
+#panel-divider {
+  width: 2px;
+  align-self: stretch;
+  background: linear-gradient(180deg, transparent 0%, var(--gold) 20%, var(--gold) 80%, transparent 100%);
+  opacity: 0.45;
+  position: relative;
+  z-index: 3;
+  flex-shrink: 0;
+  cursor: col-resize;
+  transition: width 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
+}
+
+#panel-divider:hover,
+#panel-divider.glow {
+  width: 4px;
+  opacity: 0.85;
+  box-shadow: 0 0 18px rgba(212,175,55,0.55), 0 0 6px rgba(212,175,55,0.35);
+  background: linear-gradient(180deg, transparent 0%, var(--gold) 10%, var(--gold-pale) 50%, var(--gold) 90%, transparent 100%);
+}
+
+#right-panel {
+  flex: 1;
+  background: linear-gradient(145deg, #000 0%, #0D0D0D 40%, #111 70%, #1A1200 100%);
+  background-image:
+    linear-gradient(145deg, #000 0%, #0D0D0D 40%, #111 70%, #1A1200 100%),
+    linear-gradient(rgba(212,175,55,0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(212,175,55,0.07) 1px, transparent 1px);
+  background-size: 100% 100%, 40px 40px, 40px 40px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+}
+
+/* Orbs */
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.orb-1 {
+  width: 320px; height: 320px;
+  top: 10%; right: 15%;
+  background: radial-gradient(circle, rgba(212,175,55,0.12) 0%, transparent 70%);
+  animation: orb-drift-1 15s ease-in-out infinite;
+}
+
+.orb-2 {
+  width: 240px; height: 240px;
+  bottom: 15%; left: 10%;
+  background: radial-gradient(circle, rgba(201,162,39,0.09) 0%, transparent 70%);
+  animation: orb-drift-2 18s ease-in-out infinite;
+}
+
+/* Accent lines */
+.accent-line-top {
+  position: absolute;
+  top: 0; left: 20%; right: 20%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  opacity: 0.5;
+}
+
+.accent-line-bottom {
+  position: absolute;
+  bottom: 0; left: 20%; right: 20%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  opacity: 0.3;
+}
+
+/* Corner brackets */
+.corner {
+  position: absolute;
+  width: 40px; height: 40px;
+}
+
+.corner-tr {
+  top: 20px; right: 20px;
+  border-top: 1px solid rgba(212,175,55,0.25);
+  border-right: 1px solid rgba(212,175,55,0.25);
+}
+
+.corner-bl {
+  bottom: 20px; left: 20px;
+  border-bottom: 1px solid rgba(212,175,55,0.25);
+  border-left: 1px solid rgba(212,175,55,0.25);
+}
+
+/* Branding text */
+#branding {
+  text-align: center;
+  position: relative;
+  z-index: 2;
+  margin-bottom: 52px;
+  opacity: 0;
+  transition: opacity 0.9s 0.3s ease;
+}
+
+#branding.loaded { opacity: 1; }
+
+.brand-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  border: 1px solid rgba(212,175,55,0.3);
+  background: rgba(212,175,55,0.06);
+  margin-bottom: 20px;
+  animation: goldPulse 3s ease-in-out infinite;
+}
+
+.brand-headline {
+  font-family: var(--font-display);
+  font-size: 44px;
+  font-weight: 600;
+  line-height: 1.1;
+  margin-bottom: 14px;
+  letter-spacing: -0.5px;
+}
+
+.gold-shimmer {
+  background: linear-gradient(90deg, var(--gold) 0%, var(--gold-pale) 40%, var(--gold) 60%, var(--gold-deep) 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 4s linear infinite;
+}
+
+.brand-white { color: rgba(255,255,255,0.88); }
+
+.brand-sub {
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 300;
+  color: rgba(255,255,255,0.45);
+  max-width: 320px;
+  margin: 0 auto;
+  line-height: 1.65;
+  letter-spacing: 0.01em;
+}
+
+/* Cards container */
+#cards-wrap {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.9s 0.5s ease;
+}
+
+#cards-wrap.loaded { opacity: 1; }
+
+.cards-top-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.card-offset { margin-top: 16px; }
+
+/* Glass card base */
+.glass-card {
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(212,175,55,0.2);
+  border-radius: 16px;
+  padding: 20px 22px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(212,175,55,0.1);
+  width: 220px;
+}
+
+.float-a { animation: floatA 7s ease-in-out infinite; }
+.float-b { animation: floatB 8.5s ease-in-out infinite; }
+.float-c { animation: floatC 6s ease-in-out infinite; }
+
+/* ── TRUST SCORE CARD ─── */
+.ts-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.ts-label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(212,175,55,0.65);
+  margin-bottom: 3px;
+}
+
+.ts-score {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 600;
+  color: var(--gold);
+  line-height: 1;
+}
+
+.ts-sub {
+  font-size: 10.5px;
+  color: rgba(255,255,255,0.45);
+  margin-top: 4px;
+}
+
+.ts-segments {
+  display: flex;
+  gap: 6px;
+}
+
+.seg {
+  flex: 1;
+  text-align: center;
+}
+
+.seg-bar {
+  height: 3px;
+  border-radius: 2px;
+  margin-bottom: 4px;
+}
+
+.seg-label {
+  font-size: 8.5px;
+  color: rgba(255,255,255,0.35);
+  letter-spacing: 0.03em;
+}
+
+/* ── SPENDING CARD ─── */
+.sp-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.sp-label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(212,175,55,0.65);
+  margin-bottom: 3px;
+}
+
+.sp-val {
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: #fff;
+  font-weight: 500;
+}
+
+.sp-period {
+  font-size: 12px;
+  color: rgba(212,175,55,0.7);
+  font-family: var(--font-body);
+  font-weight: 400;
+}
+
+.sp-badge {
+  background: rgba(212,175,55,0.1);
+  border: 1px solid rgba(212,175,55,0.2);
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 10.5px;
+  color: var(--gold);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.bar-label {
+  font-size: 10px;
+  color: rgba(212,175,55,0.6);
+  width: 32px;
+  flex-shrink: 0;
+  font-family: var(--font-body);
+}
+
+.bar-track {
+  flex: 1;
+  height: 5px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: 10px;
+  background: linear-gradient(90deg, var(--gold-deep), var(--gold-pale));
+}
+
+.bar-val {
+  font-size: 10px;
+  color: rgba(212,175,55,0.75);
+  width: 24px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ── ALLOCATION CARD ─── */
+.al-label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(212,175,55,0.65);
+  margin-bottom: 3px;
+}
+
+.al-total {
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: #fff;
+  font-weight: 500;
+  margin-bottom: 14px;
+}
+
+.al-body {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.al-chart { width: 56px; height: 56px; flex-shrink: 0; }
+
+.alloc-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+
+.alloc-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.alloc-name {
+  font-size: 10.5px;
+  color: rgba(255,255,255,0.6);
+  flex: 1;
+  font-family: var(--font-body);
+}
+
+.alloc-pct {
+  font-size: 10.5px;
+  color: rgba(212,175,55,0.85);
+  font-weight: 500;
+}
+
+/* ── KEYFRAMES ───────────────────────────────────────────────── */
+@keyframes floatA {
+  0%, 100% { transform: translateY(0px) rotate(-1.5deg); }
+  50%       { transform: translateY(-14px) rotate(-1.5deg); }
+}
+@keyframes floatB {
+  0%, 100% { transform: translateY(0px) rotate(2deg); }
+  50%       { transform: translateY(-10px) rotate(2deg); }
+}
+@keyframes floatC {
+  0%, 100% { transform: translateY(0px) rotate(-0.5deg); }
+  50%       { transform: translateY(-8px) rotate(-0.5deg); }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+@keyframes goldPulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50%       { opacity: 1; transform: scale(1.08); }
+}
+@keyframes orb-drift-1 {
+  0%, 100% { transform: translate(0,0); }
+  50%       { transform: translate(30px, -20px); }
+}
+@keyframes orb-drift-2 {
+  0%, 100% { transform: translate(0,0); }
+  50%       { transform: translate(-25px, 18px); }
+}
+
+/* ── RESPONSIVE ──────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  #app { flex-direction: column; }
+
+  #left-panel {
+    flex: none;
+    width: 100%;
+    padding: 40px 24px;
+    box-shadow: none;
+  }
+
+  #right-panel {
+    flex: none;
+    min-height: 420px;
+    padding: 36px 20px;
+  }
+
+  .cards-top-row { flex-direction: column; gap: 12px; }
+  .card-offset { margin-top: 0; }
+  .glass-card { width: 100%; max-width: 300px; }
+  .brand-headline { font-size: 34px; }
+}
+</style>
+</head>
+<body>
+
+<div id="page-transition"></div>
+
+<!-- Back to Landing -->
+<a id="back-to-landing" href="landing.html" onclick="navigateTo(event,'landing.html')">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+  Back to Home
+</a>
+
+<!-- Global financial network background (shared with landing) -->
+<div id="bg-layer">
+  <canvas id="bg-webgl"></canvas>
+  <svg id="bg-canvas" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+    <defs>
+      <linearGradient id="bgGradLogin" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%"   stop-color="#000000"/>
+        <stop offset="40%"  stop-color="#060606"/>
+        <stop offset="70%"  stop-color="#0A0800"/>
+        <stop offset="100%" stop-color="#000000"/>
+      </linearGradient>
+      <radialGradient id="goldGlowLogin1" cx="30%" cy="35%" r="45%">
+        <stop offset="0%" stop-color="rgba(212,175,55,0.1)"/>
+        <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
+      </radialGradient>
+      <radialGradient id="goldGlowLogin2" cx="75%" cy="65%" r="40%">
+        <stop offset="0%" stop-color="rgba(212,175,55,0.07)"/>
+        <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
+      </radialGradient>
+    </defs>
+
+    <rect width="100%" height="100%" fill="url(#bgGradLogin)"/>
+    <rect width="100%" height="100%" fill="url(#goldGlowLogin1)"/>
+    <rect width="100%" height="100%" fill="url(#goldGlowLogin2)"/>
+
+    <g stroke="rgba(212,175,55,0.055)" stroke-width="0.5">
+      <line x1="0" y1="8.33%"  x2="100%" y2="8.33%"/>
+      <line x1="0" y1="16.66%" x2="100%" y2="16.66%"/>
+      <line x1="0" y1="25%"    x2="100%" y2="25%"/>
+      <line x1="0" y1="33.33%" x2="100%" y2="33.33%"/>
+      <line x1="0" y1="41.66%" x2="100%" y2="41.66%"/>
+      <line x1="0" y1="50%"    x2="100%" y2="50%"/>
+      <line x1="0" y1="58.33%" x2="100%" y2="58.33%"/>
+      <line x1="0" y1="66.66%" x2="100%" y2="66.66%"/>
+      <line x1="0" y1="75%"    x2="100%" y2="75%"/>
+      <line x1="0" y1="83.33%" x2="100%" y2="83.33%"/>
+      <line x1="0" y1="91.66%" x2="100%" y2="91.66%"/>
+    </g>
+
+    <g stroke="rgba(212,175,55,0.04)" stroke-width="0.5">
+      <line x1="8.33%"  y1="0" x2="8.33%"  y2="100%"/>
+      <line x1="16.66%" y1="0" x2="16.66%" y2="100%"/>
+      <line x1="25%"    y1="0" x2="25%"    y2="100%"/>
+      <line x1="33.33%" y1="0" x2="33.33%" y2="100%"/>
+      <line x1="41.66%" y1="0" x2="41.66%" y2="100%"/>
+      <line x1="50%"    y1="0" x2="50%"    y2="100%"/>
+      <line x1="58.33%" y1="0" x2="58.33%" y2="100%"/>
+      <line x1="66.66%" y1="0" x2="66.66%" y2="100%"/>
+      <line x1="75%"    y1="0" x2="75%"    y2="100%"/>
+      <line x1="83.33%" y1="0" x2="83.33%" y2="100%"/>
+      <line x1="91.66%" y1="0" x2="91.66%" y2="100%"/>
+    </g>
+  </svg>
+</div>
+<div id="grain"></div>
+<div id="bg-overlay"></div>
+<div id="cursor-spotlight"></div>
+
+<div id="app">
+
+  <!-- ══ LEFT: Login Panel ══════════════════════════════════════ -->
+  <div id="left-panel">
+    <div id="login-card">
+
+      <!-- Logo -->
+      <div class="logo-row">
+        <div class="logo-mark">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <polygon points="10,2 18,6 18,14 10,18 2,14 2,6" stroke="#D4AF37" stroke-width="1.5" stroke-linejoin="round"/>
+            <polygon points="10,5 15,8 15,12 10,15 5,12 5,8" fill="rgba(212,175,55,0.2)" stroke="#D4AF37" stroke-width="1" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <span class="logo-name">TrustMetric</span>
+      </div>
+
+      <!-- Heading -->
+      <h1 class="auth-heading">Welcome Back</h1>
+      <p class="auth-subtext">Access your financial trust dashboard</p>
+
+  <!-- Tabs -->
+<div class="tab-row">
+  <button class="tab-btn active" id="tab-signin" onclick="switchTab('signin')" style="padding: 0 70px;">Sign In</button>
+  <button class="tab-btn" id="tab-signup" onclick="switchTab('signup')" style="padding: 0 70px;">Sign Up</button>
+</div>
+      <!-- Form -->
+      <div class="field-group" id="field-group">
+
+        <!-- Name (signup only) -->
+        <div class="field" id="field-name">
+          <label>Full Name</label>
+          <div class="input-wrap">
+            <input class="gold-input" type="text" placeholder="Jordan Mercer" autocomplete="name" />
+          </div>
+        </div>
+
+        <!-- Email -->
+        <div class="field">
+          <label>Email Address</label>
+          <div class="input-wrap">
+            <input class="gold-input" type="email" placeholder="you@example.com" autocomplete="email" />
+          </div>
+        </div>
+
+        <!-- Password -->
+        <div class="field">
+          <label>Password</label>
+          <div class="input-wrap">
+            <input class="gold-input has-icon" type="password" id="pw-input" placeholder="Enter your password" autocomplete="current-password" />
+            <button class="pw-toggle" onclick="togglePw()" id="pw-btn" aria-label="Toggle password visibility">
+              <svg id="eye-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+      </div><!-- /field-group -->
+
+      <!-- Remember + Forgot -->
+      <div class="remember-row">
+        <span class="remember-label" onclick="toggleRemember()">
+          <div class="custom-checkbox" id="checkbox"></div>
+          Remember me
+        </span>
+       
+      </div>
+
+      <!-- Sign In Button -->
+      <button class="signin-btn" id="submit-btn" onclick="handleSubmit()">Sign In</button>
+
+      <!-- Footer -->
+      <div class="auth-footer">
+        &copy; 2026 TrustMetric &nbsp;&middot;&nbsp;
+        <a href="#">Terms</a> &nbsp;&amp;&nbsp; <a href="#">Privacy</a>
+      </div>
+
+    </div><!-- /login-card -->
+  </div><!-- /left-panel -->
+
+  <!-- ══ GOLD VERTICAL DIVIDER ══════════════════════════════════ -->
+  <div id="panel-divider" aria-hidden="true"></div>
+
+  <!-- ══ RIGHT: Branding Panel ══════════════════════════════════ -->
+  <div id="right-panel">
+
+    <!-- Ambient orbs -->
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <!-- Accent lines -->
+    <div class="accent-line-top"></div>
+    <div class="accent-line-bottom"></div>
+
+    <!-- Corner brackets -->
+    <div class="corner corner-tr"></div>
+    <div class="corner corner-bl"></div>
+
+    <!-- Branding text -->
+    <div id="branding">
+      <div class="brand-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2L3 7l9 5 9-5-9-5z"/>
+          <path d="M3 12l9 5 9-5"/>
+          <path d="M3 17l9 5 9-5"/>
+        </svg>
+      </div>
+      <h2 class="brand-headline">
+        <span class="gold-shimmer">Smarter Financial</span><br>
+        <span class="brand-white">Identity</span>
+      </h2>
+      <p class="brand-sub">
+        Build trust beyond traditional credit scoring.<br>
+        Your full financial identity, unlocked.
+      </p>
+    </div>
+
+    <!-- Floating Cards -->
+    <div id="cards-wrap">
+
+      <div class="cards-top-row">
+
+        <!-- Trust Score Card -->
+        <div class="card-offset">
+          <div class="glass-card float-a">
+            <div class="ts-top">
+              <div>
+                <div class="ts-label">Trust Score</div>
+                <div class="ts-score">742</div>
+                <div class="ts-sub">Excellent &middot; Top 8%</div>
+              </div>
+              <svg width="64" height="64" viewBox="0 0 64 64">
+                <defs>
+                  <linearGradient id="arcGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#C9A227"/>
+                    <stop offset="100%" stop-color="#F0D060"/>
+                  </linearGradient>
+                </defs>
+                <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(212,175,55,0.1)" stroke-width="5"/>
+                <circle cx="32" cy="32" r="26" fill="none" stroke="url(#arcGrad)" stroke-width="5"
+                  stroke-linecap="round" stroke-dasharray="163" stroke-dashoffset="32"
+                  style="transform:rotate(-90deg);transform-origin:50% 50%"/>
+                <text x="32" y="35" text-anchor="middle" style="font-family:var(--font-display);font-size:11px;font-weight:600;fill:var(--gold)">742</text>
+              </svg>
+            </div>
+            <div class="ts-segments">
+              <div class="seg">
+                <div class="seg-bar" style="background:var(--gold)"></div>
+                <div class="seg-label">Payment</div>
+              </div>
+              <div class="seg">
+                <div class="seg-bar" style="background:rgba(212,175,55,0.6)"></div>
+                <div class="seg-label">Credit</div>
+              </div>
+              <div class="seg">
+                <div class="seg-bar" style="background:rgba(212,175,55,0.4)"></div>
+                <div class="seg-label">Income</div>
+              </div>
+              <div class="seg">
+                <div class="seg-bar" style="background:rgba(212,175,55,0.25)"></div>
+                <div class="seg-label">Alt</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Spending Analysis Card -->
+        <div class="glass-card float-b">
+          <div class="sp-top">
+            <div>
+              <div class="sp-label">Spending Analysis</div>
+              <div class="sp-val">$17,043 <span class="sp-period">/ 6mo</span></div>
+            </div>
+            <div class="sp-badge">↓ 4.2%</div>
+          </div>
+          <div class="bar-wrap">
+            <div class="bar-label">Jan</div>
+            <div class="bar-track"><div class="bar-fill" style="width:72%"></div></div>
+            <div class="bar-val">3.2k</div>
+          </div>
+          <div class="bar-wrap">
+            <div class="bar-label">Feb</div>
+            <div class="bar-track"><div class="bar-fill" style="width:55%"></div></div>
+            <div class="bar-val">2.4k</div>
+          </div>
+          <div class="bar-wrap">
+            <div class="bar-label">Mar</div>
+            <div class="bar-track"><div class="bar-fill" style="width:88%"></div></div>
+            <div class="bar-val">4.1k</div>
+          </div>
+          <div class="bar-wrap">
+            <div class="bar-label">Apr</div>
+            <div class="bar-track"><div class="bar-fill" style="width:61%"></div></div>
+            <div class="bar-val">2.8k</div>
+          </div>
+          <div class="bar-wrap">
+            <div class="bar-label">May</div>
+            <div class="bar-track"><div class="bar-fill" style="width:94%"></div></div>
+            <div class="bar-val">4.5k</div>
+          </div>
+        </div>
+
+      </div><!-- /cards-top-row -->
+
+      <!-- Portfolio Allocation Card -->
+      <div class="glass-card float-c">
+        <div class="al-label">Portfolio Allocation</div>
+        <div class="al-total">$284,910</div>
+        <div class="al-body">
+          <svg class="al-chart" width="56" height="56" viewBox="0 0 56 56">
+            <circle cx="28" cy="28" r="22" fill="none" stroke="rgba(212,175,55,0.1)" stroke-width="7"/>
+            <circle cx="28" cy="28" r="22" fill="none" stroke="#D4AF37" stroke-width="7"
+              stroke-linecap="round" stroke-dasharray="138" stroke-dashoffset="80"
+              style="transform:rotate(-90deg);transform-origin:50% 50%"/>
+            <circle cx="28" cy="28" r="13" fill="none" stroke="rgba(212,175,55,0.2)" stroke-width="5"/>
+            <circle cx="28" cy="28" r="13" fill="none" stroke="#C9A227" stroke-width="5"
+              stroke-linecap="round" stroke-dasharray="82" stroke-dashoffset="59"
+              style="transform:rotate(-90deg);transform-origin:50% 50%"/>
+          </svg>
+          <div style="flex:1">
+            <div class="alloc-row">
+              <div class="alloc-dot" style="background:#D4AF37"></div>
+              <div class="alloc-name">Equities</div>
+              <div class="alloc-pct">42%</div>
+            </div>
+            <div class="alloc-row">
+              <div class="alloc-dot" style="background:#C9A227"></div>
+              <div class="alloc-name">Fixed Income</div>
+              <div class="alloc-pct">28%</div>
+            </div>
+            <div class="alloc-row">
+              <div class="alloc-dot" style="background:rgba(212,175,55,0.55)"></div>
+              <div class="alloc-name">Alt Assets</div>
+              <div class="alloc-pct">18%</div>
+            </div>
+            <div class="alloc-row">
+              <div class="alloc-dot" style="background:rgba(212,175,55,0.3)"></div>
+              <div class="alloc-name">Cash</div>
+              <div class="alloc-pct">12%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /cards-wrap -->
+
+  </div><!-- /right-panel -->
+
+</div><!-- /app -->
+
+<script>
+/* ─────────────────────────────────────────────
+   BACKEND CONFIG
+───────────────────────────────────────────── */
+const API_BASE = window.location.origin;  // Backend server
+
+async function apiPost(path, body) {
+  const res = await fetch(API_BASE + path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
+  return data;
+}
+
+/* ─────────────────────────────────────────────
+   STATE
+───────────────────────────────────────────── */
+let currentTab = 'signin';
+let pwVisible  = false;
+let remembered = false;
+
+/* ─────────────────────────────────────────────
+   PAGE NAVIGATION (smooth fade transition)
+───────────────────────────────────────────── */
+function navigateTo(e, url) {
+  if (e) e.preventDefault();
+  const overlay = document.getElementById('page-transition');
+  overlay.classList.add('fade-out');
+  setTimeout(() => { window.location.href = (url.startsWith('/') ? url : '/' + url); }, 450);
+}
+
+/* ─────────────────────────────────────────────
+   AUTH FEEDBACK
+───────────────────────────────────────────── */
+function setMessage(msg, type) {
+  // type: 'error' | 'success' | ''
+  let el = document.getElementById('auth-msg');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'auth-msg';
+    el.style.cssText = [
+      'font-size:13px','font-weight:400','padding:10px 14px',
+      'border-radius:8px','margin-bottom:14px','letter-spacing:0.01em',
+      'transition:opacity 0.25s'
+    ].join(';');
+    document.getElementById('submit-btn').insertAdjacentElement('beforebegin', el);
+  }
+  el.textContent = msg;
+  if (type === 'error') {
+    el.style.background = 'rgba(239,68,68,0.10)';
+    el.style.border     = '1px solid rgba(239,68,68,0.35)';
+    el.style.color      = '#ef4444';
+  } else if (type === 'success') {
+    el.style.background = 'rgba(34,197,94,0.10)';
+    el.style.border     = '1px solid rgba(34,197,94,0.35)';
+    el.style.color      = '#22c55e';
+  } else {
+    el.style.background = 'transparent';
+    el.style.border     = 'none';
+    el.style.color      = 'transparent';
+  }
+}
+
+function setBtnState(loading) {
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = loading;
+  if (loading) {
+    btn.dataset.original = btn.textContent;
+    btn.textContent = 'Please wait…';
+  } else {
+    btn.textContent = btn.dataset.original || (currentTab === 'signup' ? 'Create Account' : 'Sign In');
+  }
+}
+
+/* ─────────────────────────────────────────────
+   SIGN IN / SIGN UP  →  /login  /register
+───────────────────────────────────────────── */
+async function handleSubmit() {
+  const email    = document.querySelector('#field-group input[type="email"]')?.value?.trim();
+  const password = document.getElementById('pw-input')?.value;
+
+  setMessage('', '');
+  if (!email || !password) { setMessage('Please enter your email and password.', 'error'); return; }
+  if (currentTab === 'signup' && password.length < 8) { setMessage('Password must be at least 8 characters.', 'error'); return; }
+
+  setBtnState(true);
+  try {
+    if (currentTab === 'signup') {
+      try {
+        await apiPost('/register', { email, password });
+      } catch (err) {
+        // already registered — proceed to login anyway
+        if (!err.message.toLowerCase().includes('already')) throw err;
+      }
+    }
+
+    const data = await apiPost('/login', { email, password });
+    localStorage.setItem('tm_user_id', String(data.user_id));
+    localStorage.setItem('tm_email',   email);
+
+    setMessage('Login successful! Redirecting…', 'success');
+    setTimeout(() => navigateTo(null, 'dashboard.html'), 700);
+
+  } catch (err) {
+    setMessage(err.message || 'Authentication failed. Check your credentials.', 'error');
+    setBtnState(false);
+  }
+}
+
+/* ─────────────────────────────────────────────
+   TAB SWITCH
+───────────────────────────────────────────── */
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('tab-signin').classList.toggle('active', tab === 'signin');
+  document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
+  const nameField = document.getElementById('field-name');
+  const submitBtn = document.getElementById('submit-btn');
+  const pwInput   = document.getElementById('pw-input');
+  if (tab === 'signup') {
+    nameField.style.display = 'flex';
+    nameField.style.flexDirection = 'column';
+    nameField.style.gap = '6px';
+    submitBtn.textContent = 'Create Account';
+    submitBtn.onclick = handleSubmit;
+    pwInput.placeholder = 'Create a strong password';
+    pwInput.autocomplete = 'new-password';
+  } else {
+    nameField.style.display = 'none';
+    submitBtn.textContent = 'Sign In';
+    submitBtn.onclick = handleSubmit;
+    pwInput.placeholder = 'Enter your password';
+    pwInput.autocomplete = 'current-password';
+  }
+  setMessage('', '');
+}
+
+/* ─────────────────────────────────────────────
+   PASSWORD TOGGLE
+───────────────────────────────────────────── */
+function togglePw() {
+  pwVisible = !pwVisible;
+  document.getElementById('pw-input').type = pwVisible ? 'text' : 'password';
+  document.getElementById('eye-icon').innerHTML = pwVisible
+    ? `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>`
+    : `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>`;
+}
+
+/* ─────────────────────────────────────────────
+   REMEMBER CHECKBOX
+───────────────────────────────────────────── */
+function toggleRemember() {
+  remembered = !remembered;
+  const cb = document.getElementById('checkbox');
+  cb.classList.toggle('checked', remembered);
+  cb.innerHTML = remembered
+    ? `<svg width="9" height="9" viewBox="0 0 12 12" fill="none"><polyline points="2,6 5,9 10,3" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+    : '';
+}
+
+/* ─────────────────────────────────────────────
+   WEBGL BACKGROUND  (original — unchanged)
+───────────────────────────────────────────── */
+let loginGl=null,loginProgram=null,loginBuffers=null,loginUniforms=null;
+let loginAnimId=null,loginTime=0,loginMouse={x:0.5,y:0.5};
+
+function loginCreateShader(gl,type,src){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){gl.deleteShader(s);return null;}return s;}
+function loginCreateProgram(gl,vs,fs){const v=loginCreateShader(gl,gl.VERTEX_SHADER,vs);const f=loginCreateShader(gl,gl.FRAGMENT_SHADER,fs);if(!v||!f)return null;const p=gl.createProgram();gl.attachShader(p,v);gl.attachShader(p,f);gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS)){gl.deleteProgram(p);return null;}return p;}
+
+function initLoginNetworkBackground() {
+  const canvas = document.getElementById('bg-webgl');
+  if (!canvas) return;
+  const gl = canvas.getContext('webgl',{antialias:true,alpha:true}) || canvas.getContext('experimental-webgl',{antialias:true,alpha:true});
+  if (!gl) return;
+  loginGl = gl;
+  const resize = () => {
+    const dpr=Math.min(window.devicePixelRatio||1.5,2),w=window.innerWidth,h=window.innerHeight;
+    canvas.width=w*dpr; canvas.height=h*dpr; canvas.style.width=w+'px'; canvas.style.height=h+'px';
+    gl.viewport(0,0,canvas.width,canvas.height);
+  };
+  resize(); window.addEventListener('resize',resize);
+  const vsSource=`attribute vec3 aPosition;attribute float aKind;uniform mat4 uMatrix;varying float vKind;void main(){vKind=aKind;gl_Position=uMatrix*vec4(aPosition,1.0);gl_PointSize=mix(2.0,4.5,aKind);}`;
+  const fsSource=`precision mediump float;varying float vKind;void main(){float intensity=mix(0.35,1.0,vKind);vec2 uv=gl_PointCoord-0.5;float dist=length(uv);float alpha=smoothstep(0.5,0.0,dist);vec3 gold=vec3(0.83,0.69,0.25);gl_FragColor=vec4(gold*intensity,alpha*intensity);}`;
+  const program=loginCreateProgram(gl,vsSource,fsSource);
+  if(!program)return;
+  loginProgram=program;
+  const nodeCount=24; const nodes=[];
+  for(let i=0;i<nodeCount;i++){const a=(i/nodeCount)*Math.PI*2,r=0.35+Math.random()*0.28,y=(Math.random()-0.5)*0.5;nodes.push({x:Math.cos(a)*r,y,z:Math.sin(a)*r*0.7});}
+  const lp=[],kinds=[],edges=[];
+  for(let i=0;i<nodeCount;i++){const a=nodes[i],b=nodes[(i+1)%nodeCount],c=nodes[(i+5)%nodeCount];edges.push([i,(i+1)%nodeCount]);lp.push(a.x,a.y,a.z,b.x,b.y,b.z);kinds.push(0,0);edges.push([i,(i+5)%nodeCount]);lp.push(a.x,a.y,a.z,c.x,c.y,c.z);kinds.push(0,0);}
+  const np=[];nodes.forEach(n=>np.push(n.x,n.y,n.z));
+  const particles=[];
+  for(let e=0;e<edges.length;e++)for(let p=0;p<2;p++)particles.push({edgeIndex:e,t:Math.random(),speed:0.05+Math.random()*0.04});
+  const particlePositions=new Float32Array(particles.length*3);
+  const posBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,posBuffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(lp),gl.STATIC_DRAW);
+  const kindBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,kindBuffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(kinds),gl.STATIC_DRAW);
+  const nodeBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,nodeBuffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(np),gl.STATIC_DRAW);
+  const particleBuffer=gl.createBuffer();
+  gl.useProgram(program);
+  const aPos=gl.getAttribLocation(program,'aPosition'),aK=gl.getAttribLocation(program,'aKind'),uMat=gl.getUniformLocation(program,'uMatrix');
+  loginBuffers={posBuffer,kindBuffer,nodeBuffer,particleBuffer,lineVertexCount:lp.length/3,nodeVertexCount:np.length/3,particles,particlePositions};
+  loginUniforms={aPos,aK,uMat,edges,nodes};
+  gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE);gl.clearColor(0,0,0,0);
+  function animate(){
+    if(!loginGl)return;
+    loginTime+=0.006;
+    const w=canvas.width,h=canvas.height,asp=w/h;
+    const rY=0.25+loginTime*0.35+(loginMouse.x-0.5)*0.25;
+    const rX=-0.2+(loginMouse.y-0.5)*0.18;
+    const cY=Math.cos(rY),sY=Math.sin(rY),cX=Math.cos(rX),sX=Math.sin(rX);
+    const matrix=new Float32Array([cY/asp,sX*sY,-cX*sY,0,0,cX,sX,0,sY,-sX*cY,cX*cY,0,0,0,-2.2,1]);
+    gl.viewport(0,0,w,h);gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.useProgram(program);gl.uniformMatrix4fv(uMat,false,matrix);
+    gl.bindBuffer(gl.ARRAY_BUFFER,posBuffer);gl.enableVertexAttribArray(aPos);gl.vertexAttribPointer(aPos,3,gl.FLOAT,false,0,0);
+    gl.bindBuffer(gl.ARRAY_BUFFER,kindBuffer);gl.enableVertexAttribArray(aK);gl.vertexAttribPointer(aK,1,gl.FLOAT,false,0,0);
+    gl.lineWidth(1);gl.drawArrays(gl.LINES,0,loginBuffers.lineVertexCount);
+    gl.bindBuffer(gl.ARRAY_BUFFER,nodeBuffer);gl.enableVertexAttribArray(aPos);gl.vertexAttribPointer(aPos,3,gl.FLOAT,false,0,0);
+    gl.vertexAttrib1f(aK,0.6);gl.drawArrays(gl.POINTS,0,loginBuffers.nodeVertexCount);
+    const pp=loginBuffers.particles,pos=loginBuffers.particlePositions,{edges:ed,nodes:nd}=loginUniforms;
+    for(let i=0;i<pp.length;i++){const p=pp[i];p.t+=p.speed*0.008;if(p.t>1)p.t-=1;const[ai,bi]=ed[p.edgeIndex],a=nd[ai],b=nd[bi],base=i*3;pos[base]=a.x+(b.x-a.x)*p.t;pos[base+1]=a.y+(b.y-a.y)*p.t;pos[base+2]=a.z+(b.z-a.z)*p.t;}
+    gl.bindBuffer(gl.ARRAY_BUFFER,particleBuffer);gl.bufferData(gl.ARRAY_BUFFER,pos,gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(aPos);gl.vertexAttribPointer(aPos,3,gl.FLOAT,false,0,0);
+    gl.vertexAttrib1f(aK,1.0);gl.drawArrays(gl.POINTS,0,pp.length);
+    loginAnimId=requestAnimationFrame(animate);
+  }
+  loginAnimId=requestAnimationFrame(animate);
+}
+
+function initLoginSpotlight(){
+  const layer=document.getElementById('cursor-spotlight');
+  if(!layer)return;
+  const glow=document.createElement('div');
+  glow.style.cssText='position:absolute;width:420px;height:420px;border-radius:50%;background:radial-gradient(circle at center,rgba(212,175,55,0.38) 0%,rgba(212,175,55,0.14) 32%,transparent 70%);filter:blur(3px);transform:translate(-50%,-50%)';
+  glow.id='cursor-spotlight-glow';
+  layer.appendChild(glow);
+  document.addEventListener('mousemove',e=>{loginMouse.x=e.clientX/window.innerWidth;loginMouse.y=e.clientY/window.innerHeight;glow.style.left=e.clientX+'px';glow.style.top=e.clientY+'px';layer.style.opacity='1';},{passive:true});
+}
+
+/* ─────────────────────────────────────────────
+   PANEL DIVIDER GLOW
+───────────────────────────────────────────── */
+(function(){
+  const d=document.getElementById('panel-divider');
+  if(!d)return;
+  document.addEventListener('mousemove',e=>{
+    const r=d.getBoundingClientRect();
+    d.classList.toggle('glow',Math.abs(e.clientX-(r.left+r.width/2))<60);
+  },{passive:true});
+})();
+
+/* ─────────────────────────────────────────────
+   BOOT
+───────────────────────────────────────────── */
+window.addEventListener('load',()=>{
+  initLoginNetworkBackground();
+  initLoginSpotlight();
+
+  // Wire submit button to real auth handler
+  const btn = document.getElementById('submit-btn');
+  btn.onclick = handleSubmit;
+
+  // Enter key submits
+  document.addEventListener('keydown', e => { if (e.key === 'Enter') handleSubmit(); });
+
+  // Animate card in
+  requestAnimationFrame(()=>{
+    setTimeout(()=>{
+      document.getElementById('login-card').classList.add('loaded');
+      document.getElementById('branding').classList.add('loaded');
+      document.getElementById('cards-wrap').classList.add('loaded');
+    },60);
+  });
+
+  // If already logged in, update CTA
+  if (localStorage.getItem('tm_user_id')) {
+    btn.textContent = 'Continue to Dashboard';
+  }
+});
+</script>
+
+</body>
+</html>

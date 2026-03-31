@@ -1,0 +1,1742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrustMetric — Dashboard</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23111'/%3E%3Cpolygon points='16,4 27,9 27,23 16,28 5,23 5,9' stroke='%23D4AF37' stroke-width='2' stroke-linejoin='round' fill='none'/%3E%3Cpolygon points='16,9 23,13 23,19 16,23 9,19 9,13' fill='rgba(212,175,55,0.3)' stroke='%23D4AF37' stroke-width='1.2' stroke-linejoin='round'/%3E%3C/svg%3E">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.0/vanilla-tilt.min.js" defer></script>
+
+<style>
+/* ── PAGE TRANSITION ─────────────────────────────────────────── */
+#page-transition {
+  position: fixed; inset: 0; z-index: 99999;
+  background: #000; opacity: 0; pointer-events: none;
+  transition: opacity 0.45s cubic-bezier(0.4,0,0.2,1);
+}
+#page-transition.fade-out { opacity: 1; pointer-events: all; }
+body { animation: pageEnter 0.5s ease forwards; }
+@keyframes pageEnter { from { opacity: 0; } to { opacity: 1; } }
+
+/* ── BACK NAV BUTTON ─────────────────────────────────────────── */
+#back-nav-btn {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(10,10,10,0.7); backdrop-filter: blur(12px);
+  border: 1px solid rgba(212,175,55,0.25); border-radius: 10px;
+  padding: 8px 14px; cursor: pointer;
+  font-family: 'Outfit', sans-serif; font-size: 12px; font-weight: 500;
+  color: rgba(212,175,55,0.85);
+  transition: border-color 0.2s, box-shadow 0.2s, color 0.2s;
+}
+#back-nav-btn:hover {
+  border-color: rgba(212,175,55,0.6);
+  box-shadow: 0 0 16px rgba(212,175,55,0.15);
+  color: #D4AF37;
+}
+
+/* ── LOGOUT/HOME DROPDOWN ────────────────────────────────────── */
+/* ── STYLES2.CSS INLINED ─────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --gold:        #D4AF37;
+  --gold-deep:   #C9A227;
+  --gold-pale:   #F0D060;
+  --gold-dim:    rgba(212,175,55,0.15);
+  --gold-glow:   rgba(212,175,55,0.35);
+  --black:       #000000;
+  --charcoal:    #111111;
+  --charcoal-2:  #1A1A1A;
+  --charcoal-3:  #242424;
+  --white:       #FFFFFF;
+  --gray:        #6B7280;
+  --gray-light:  #9CA3AF;
+  --success:     #22c55e;
+  --risk:        #ef4444;
+  --warning:     #eab308;
+  --font-display: 'Cormorant Garamond', serif;
+  --font-body:    'Outfit', sans-serif;
+  --transition-snappy: 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  --transition-smooth: 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html, body {
+  background: var(--black); color: var(--white);
+  font-family: var(--font-body); overflow-x: hidden;
+  line-height: 1.5; -webkit-font-smoothing: antialiased;
+}
+
+#bg-layer {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background: radial-gradient(ellipse 80% 60% at 50% 40%, rgba(212,175,55,0.08) 0%, transparent 60%),
+              linear-gradient(180deg, #050505 0%, #111 40%, #000 100%);
+}
+#grain {
+  position: absolute; inset: 0; opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+}
+.orb { position: absolute; border-radius: 50%; filter: blur(80px); z-index: 0; opacity: 0.6; }
+.orb-1 { width: 400px; height: 400px; top: -10%; right: -5%; background: rgba(212,175,55,0.08); animation: floatOrb 12s ease-in-out infinite alternate; }
+.orb-2 { width: 300px; height: 300px; bottom: -5%; left: -10%; background: rgba(201,162,39,0.06); animation: floatOrb 15s ease-in-out infinite alternate-reverse; }
+.orb-3 { width: 200px; height: 200px; top: 40%; left: 30%; background: rgba(255,255,255,0.02); animation: floatOrb 10s ease-in-out infinite alternate; }
+@keyframes floatOrb { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(30px, 40px) scale(1.1); } }
+
+.app-container { display: flex; min-height: 100vh; width: 100%; position: relative; z-index: 10; }
+.main-content { flex-grow: 1; display: flex; flex-direction: column; min-width: 0; }
+.views-wrapper { flex-grow: 1; padding: 80px 48px 80px; }
+.view-panel { display: flex; flex-direction: column; gap: 32px; }
+.view-panel.hidden { display: none; }
+
+.glass-panel { background: rgba(10,10,10,0.4); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border-right: 1px solid rgba(255,255,255,0.06); }
+.glass-panel-top { background: rgba(10,10,10,0.6); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border-bottom: 1px solid rgba(255,255,255,0.06); }
+.sidebar { display: none; } .sidebar-header { display: none; } .sidebar-nav { display: none; } .sidebar-footer { display: none; } .deep-scan-btn { display: none; }
+
+.logo-mark { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #111 0%, #1A1A1A 100%); border: 1px solid rgba(212,175,55,0.35); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(212,175,55,0.2); flex-shrink: 0; cursor: pointer;}
+.logo-name { font-family: var(--font-display); font-size: 22px; font-weight: 600; color: var(--white); letter-spacing: -0.3px; }
+
+.nav-item { position: relative; background: none; border: none; cursor: pointer; font-family: var(--font-body); font-size: 14px; font-weight: 400; color: rgba(255,255,255,0.7); padding: 4px 0; letter-spacing: 0.02em; transition: color 0.2s ease-in-out, transform 0.2s ease-in-out; }
+.nav-item::after { content: ''; position: absolute; left: 50%; bottom: -4px; width: 100%; height: 2px; background: linear-gradient(90deg, transparent, var(--gold), transparent); transform: translateX(-50%) scaleX(0); transform-origin: center; transition: transform 0.2s ease-in-out; }
+.nav-item:hover { color: var(--gold); transform: translateY(-2px); }
+.nav-item:hover::after { transform: translateX(-50%) scaleX(1); }
+.nav-item.active { color: var(--gold); }
+.nav-item.active::after { transform: translateX(-50%) scaleX(1); }
+
+.topbar { height: 60px; padding: 0 48px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; position: fixed; top: 0; left: 0; right: 0; z-index: 40; }
+.topbar-right { display: flex; align-items: center; gap: 16px; justify-content: flex-end; }
+.topbar-left { display: flex; align-items: center; gap: 16px; }
+.top-nav-center { display: flex; align-items: center; gap: 36px; justify-content: center; }
+.live-status { display: flex; align-items: center; gap: 8px; padding: 6px 14px; background: rgba(34,197,94,0.1); border-radius: 20px; border: 1px solid rgba(34,197,94,0.2); }
+.status-dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; display: inline-block; }
+.pulse-dot { animation: pulseGreen 2s infinite; }
+@keyframes pulseGreen { 0% { box-shadow: 0 0 0 0 rgba(34,197,94,0.7); } 70% { box-shadow: 0 0 0 6px rgba(34,197,94,0); } 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); } }
+.status-text { color: var(--success); font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.1em; }
+.icon-btn { background: none; border: none; cursor: pointer; color: var(--gray-light); position: relative; transition: color var(--transition-snappy); width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; }
+.icon-btn svg { width: 18px; height: 18px; }
+.icon-btn:hover { color: var(--gold); }
+.badge { position: absolute; top: 2px; right: 2px; width: 8px; height: 8px; background: var(--gold); border-radius: 50%; box-shadow: 0 0 10px var(--gold); }
+.user-avatar { width: 36px; height: 36px; border-radius: 50%; overflow: hidden; border: 1px solid rgba(212,175,55,0.4); cursor: pointer; transition: box-shadow var(--transition-snappy); }
+.user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.user-avatar:hover { box-shadow: 0 0 15px rgba(212,175,55,0.3); }
+
+.welcome-header { margin-bottom: 12px; }
+.auth-heading { font-family: var(--font-display); font-size: 42px; font-weight: 500; letter-spacing: -0.5px; line-height: 1.15; margin-bottom: 6px; }
+.gold-shimmer { background: linear-gradient(90deg, var(--gold) 0%, var(--gold-pale) 40%, var(--gold) 60%, #fff 100%); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: shimmer 4s linear infinite; }
+@keyframes shimmer { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
+.block-reveal { position: relative; display: inline-block; overflow: hidden; animation: revealText 1s cubic-bezier(0.77,0,0.175,1) forwards; }
+@keyframes revealText { 0% { clip-path: inset(0 100% 0 0); } 100% { clip-path: inset(0 0 0 0); } }
+.auth-subtext { font-size: 14px; color: var(--gray-light); font-weight: 300; letter-spacing: 0.02em; }
+.typing-effect { overflow: hidden; white-space: nowrap; margin: 0; animation: typing 2.5s steps(40, end); }
+@keyframes typing { from { width: 0 } to { width: 100% } }
+.card-heading { font-family: var(--font-display); font-size: 22px; font-weight: 500; color: var(--white); margin-bottom: 24px; letter-spacing: -0.2px; }
+.gold-text { color: var(--gold); }
+.text-white { color: var(--white); }
+.text-success { color: var(--success); }
+.glow-text { text-shadow: 0 0 15px rgba(212,175,55,0.4); }
+
+.card { border-radius: 16px; padding: 32px; position: relative; overflow: hidden; transform-style: preserve-3d; }
+.card > * { transform: translateZ(20px); }
+.hero-glass-card { background: rgba(255,255,255,0.02); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 24px 64px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1); }
+.hero-glass-card::before { content: ''; position: absolute; top:0; left:20%; right:20%; height: 1px; background: linear-gradient(90deg, transparent, var(--gold), transparent); opacity: 0.5; transform: translateZ(0); }
+.dark-glass-card { background: rgba(15,15,15,0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.04); box-shadow: 0 10px 30px rgba(0,0,0,0.5); transition: border-color var(--transition-snappy), box-shadow var(--transition-snappy); }
+.hover-glow:hover { border-color: rgba(212,175,55,0.2); box-shadow: 0 16px 48px rgba(0,0,0,0.6), 0 0 30px rgba(212,175,55,0.05); }
+.gold-border-card { background: linear-gradient(145deg, rgba(20,20,20,0.8), rgba(5,5,5,0.9)); border: 1px solid rgba(212,175,55,0.3); box-shadow: 0 15px 40px rgba(0,0,0,0.6), inset 0 0 20px rgba(212,175,55,0.05); }
+
+.hero-content { display: flex; align-items: center; gap: 60px; }
+.score-ring-container { position: relative; width: 200px; height: 200px; flex-shrink: 0; }
+.score-ring { width: 100%; height: 100%; transform: rotate(-90deg); filter: drop-shadow(0 0 15px rgba(212,175,55,0.5)); }
+.ring-bg { fill: none; stroke: rgba(255,255,255,0.05); stroke-width: 8; }
+.ring-progress { fill: none; stroke: url(#goldGradientBase); stroke-width: 8; stroke-linecap: round; }
+.score-display { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); text-align: center; }
+.score-value { font-family: var(--font-display); font-size: 3.5rem; font-weight: 600; line-height: 1; margin-bottom: 4px; }
+.ts-label { font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.4); }
+.hero-metrics { display: flex; flex-direction: column; gap: 24px; flex-grow: 1; }
+.metric-row { display: flex; align-items: center; gap: 20px; }
+.metric-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.05); }
+.success-glass { background: rgba(34,197,94,0.1); color: var(--success); border-color: rgba(34,197,94,0.2); }
+.gold-glass { background: rgba(212,175,55,0.08); color: var(--gold); border-color: rgba(212,175,55,0.2); }
+.metric-val { font-size: 18px; font-family: var(--font-display); font-weight: 600; margin-top: 4px; letter-spacing: 0.5px; }
+.dashboard-row { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+.h-100 { height: 100%; }
+.explainability-content { display: flex; align-items: center; gap: 32px; }
+.explain-chart-container { width: 220px; height: 220px; flex-shrink: 0; position: relative;}
+.chart-blur-bg::before { content: ''; position: absolute; inset: 20px; background: rgba(212,175,55,0.1); filter: blur(30px); z-index: -1; border-radius: 50%;}
+.spinning-glow::after { content:''; position: absolute; inset: -10px; border: 1px dashed rgba(212,175,55,0.3); border-radius: 50%; animation: spinSlow 20s linear infinite; z-index: -1; transform: translateZ(-10px); }
+@keyframes spinSlow { 100% { transform: rotate(360deg); } }
+.explain-metrics { flex-grow: 1; display: flex; flex-direction: column; gap: 16px; }
+.explain-item { display: flex; align-items: flex-start; gap: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 12px; transition: transform 0.2s;}
+.explain-item:hover { transform: translateX(5px); }
+.explain-item:last-child { border: none; padding-bottom: 0;}
+.explain-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; box-shadow: 0 0 8px currentColor;}
+.explain-dot.success { color: var(--success); background: var(--success); }
+.explain-dot.warning { color: var(--warning); background: var(--warning); }
+.explain-dot.risk { color: var(--risk); background: var(--risk); }
+.explain-text-group { flex-grow: 1;}
+.explain-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;}
+.explain-title { font-weight: 400; font-size: 13.5px; color: var(--white); }
+.explain-pct { font-family: var(--font-display); font-weight: 600; font-size: 18px; color: var(--gold); }
+.explain-desc { font-size: 12px; color: var(--gray-light); font-weight: 300;}
+.credit-metric { margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.cl-value { font-family: var(--font-display); font-size: 36px; font-weight: 600; line-height: 1.1; margin-top: 6px;}
+.cl-subval { font-size: 16px; font-family: var(--font-display); margin-top: 6px; font-weight: 600;}
+.credit-flex { display: flex; justify-content: space-between; margin-bottom: 32px; }
+.styling-lux { background: rgba(0,0,0,0.3); padding: 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.03); }
+.emi-input-group { margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;}
+.gold-input { width: 120px; padding: 10px 14px; background: rgba(20,20,20,0.8); border: 1px solid rgba(212,175,55,0.2); border-radius: 8px; font-family: var(--font-body); font-size: 14px; color: var(--white); text-align: right; outline: none; transition: all var(--transition-snappy); }
+.gold-input:focus { border-color: var(--gold); box-shadow: 0 0 12px rgba(212,175,55,0.15); transform: scale(1.02);}
+.emi-result { margin-top: 20px; padding-top: 16px; border-top: 1px dashed rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;}
+.emi-result strong { font-family: var(--font-display); font-size: 24px; font-weight: 600;}
+.ai-heading-wrapper { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;}
+.ai-heading-wrapper .card-heading { margin-bottom: 0;}
+.live-pulse-badge { background: rgba(212,175,55,0.15); border: 1px solid var(--gold); color: var(--gold); padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 600; letter-spacing: 0.1em; animation: flashBadge 3s infinite;}
+@keyframes flashBadge { 0%, 100% {opacity: 1} 50% {opacity: 0.5} }
+.copilot-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.copilot-card { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 14px; padding: 24px; transition: all var(--transition-snappy); cursor: default; position: relative; overflow: hidden;}
+.copilot-card::before { content: ''; position: absolute; inset:0; background: linear-gradient(135deg, rgba(212,175,55,0) 0%, rgba(212,175,55,0.05) 100%); opacity: 0; transition: opacity 0.3s; z-index: -1;}
+.copilot-card:hover { border-color: rgba(212,175,55,0.3); transform: translateY(-6px) scale(1.02); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+.copilot-card:hover::before { opacity: 1; }
+.cr-title { font-family: var(--font-display); font-size: 20px; color: var(--white); margin-bottom: 12px;}
+.cr-impact { display: inline-flex; align-items: center; gap: 6px; background: rgba(212,175,55,0.1); color: var(--gold); padding: 5px 12px; border-radius: 100px; font-size: 11px; font-weight: 500; margin-bottom: 16px; letter-spacing: 0.05em; border: 1px solid rgba(212,175,55,0.2);}
+.cr-desc { font-size: 13px; color: var(--gray-light); font-weight: 300; line-height: 1.6;}
+.insights-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+.col-span-2 { grid-column: span 2; }
+.chart-wrapper { position: relative; width: 100%; height: 320px; }
+.simulator-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 32px; align-items: start; }
+.slider-group { margin-bottom: 36px; }
+.slider-header { display: flex; justify-content: space-between; margin-bottom: 16px; }
+.slider-header label { margin-bottom: 0; }
+.slider-val { font-family: var(--font-display); font-size: 22px; font-weight: 600;}
+.gold-slider { width: 100%; -webkit-appearance: none; height: 3px; border-radius: 2px; background: rgba(255,255,255,0.1); outline: none; transition: box-shadow 0.3s;}
+.gold-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 22px; height: 22px; border-radius: 50%; background: var(--black); border: 2px solid var(--gold); cursor: pointer; box-shadow: 0 0 10px rgba(212,175,55,0.4); transition: transform 0.2s, box-shadow 0.2s; }
+.gold-slider::-webkit-slider-thumb:hover { transform: scale(1.2); background: var(--charcoal-3); box-shadow: 0 0 15px rgba(212,175,55,0.8); }
+.slider-ticks { display: flex; justify-content: space-between; margin-top: 12px; color: rgba(255,255,255,0.3);}
+.signin-btn { width: 100%; padding: 18px; background: var(--gold); color: var(--black); font-family: var(--font-body); font-size: 14px; font-weight: 600; border: none; border-radius: 10px; cursor: pointer; letter-spacing: 0.05em; text-transform: uppercase; transition: all var(--transition-snappy); box-shadow: 0 8px 24px rgba(212,175,55,0.25); margin-top: 10px; z-index: 10; position: relative; overflow: hidden;}
+.signin-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(212,175,55,0.4); background: var(--gold-deep); }
+.sim-scores { display: flex; flex-direction: column; align-items: center; gap: 24px; margin-bottom: 32px; }
+.sim-arrow svg { width: 28px; height: 28px; color: var(--gold); transform: rotate(90deg); filter: drop-shadow(0 0 5px rgba(212,175,55,0.5)); animation: bounceDown 2s infinite;}
+@keyframes bounceDown { 0%, 100% {transform: rotate(90deg) translateX(0);} 50% {transform: rotate(90deg) translateX(5px);} }
+.sim-number { font-family: var(--font-display); font-size: 64px; font-weight: 600; line-height: 1; transition: color var(--transition-smooth); filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));}
+.lux-delta { background: rgba(20,20,20,0.5); border: 1px solid rgba(255,255,255,0.05); padding: 18px; border-radius: 10px; font-size: 13px; font-weight: 300; text-align: center; color: var(--gray-light); transition: all var(--transition-smooth);}
+.ai-status-panel { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.05);}
+.status-circle.good { width: 12px; height: 12px; background: var(--success); border-radius: 50%; box-shadow: 0 0 10px var(--success); }
+#toast-container { position: fixed; bottom: 30px; right: 30px; z-index: 9999; display: flex; flex-direction: column; gap: 12px; pointer-events: none; }
+.toast { background: rgba(10,10,10,0.9); backdrop-filter: blur(10px); border: 1px solid rgba(212,175,55,0.3); border-left: 4px solid var(--gold); border-radius: 8px; padding: 16px 20px; min-width: 300px; box-shadow: 0 15px 35px rgba(0,0,0,0.5); transform: translateX(120%); opacity: 0; transition: transform 0.4s cubic-bezier(0.175,0.885,0.32,1.275), opacity 0.4s ease; pointer-events: auto; }
+.toast.show { transform: translateX(0); opacity: 1; }
+.toast-title { font-family: var(--font-display); color: var(--gold); font-size: 18px; margin-bottom: 4px; font-weight: 600;}
+.toast-msg { color: var(--white); font-size: 13px; font-weight: 300; }
+#deep-scan-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9998; backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.5s ease; pointer-events: none; }
+#deep-scan-overlay.active { opacity: 1; pointer-events: auto; }
+.scanner-line { position: absolute; top: 0; left: 0; width: 100%; height: 5px; background: var(--gold); box-shadow: 0 0 30px 10px rgba(212,175,55,0.5); transform: translateY(-100vh); animation: scanMotion 2s ease-in-out infinite alternate; z-index: 2; opacity: 0.8;}
+.scan-text { position: relative; z-index: 3; font-family: var(--font-display); font-size: 3rem; font-weight: 600; letter-spacing: 0.2rem; text-align: center; }
+@keyframes scanMotion { 0% { transform: translateY(0); } 100% { transform: translateY(100vh); } }
+.animate-fade-in { opacity: 0; transition: opacity 0.8s cubic-bezier(0.22,1,0.36,1), transform 0.8s cubic-bezier(0.22,1,0.36,1); will-change: opacity, transform; }
+.animate-fade-in.up { transform: translateY(30px); }
+.animate-fade-in.visible { opacity: 1; transform: translateY(0); }
+.d-delay-1 { transition-delay: 100ms; } .d-delay-2 { transition-delay: 200ms; } .d-delay-3 { transition-delay: 300ms; } .d-delay-4 { transition-delay: 400ms; }
+.view-panel { animation: fadeInView 0.4s ease forwards; }
+@keyframes fadeInView { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes cardEntrance { from { opacity: 0; transform: translateY(28px); } to   { opacity: 1; transform: translateY(0); } }
+.insights-grid .card { opacity: 0; transform: translateY(28px); transition: opacity 0.45s cubic-bezier(0.22,1,0.36,1), transform 0.45s cubic-bezier(0.22,1,0.36,1), border-color 0.3s ease, box-shadow 0.3s ease; }
+.insights-grid .card.card-visible { opacity: 1; transform: translateY(0); }
+.insights-grid .card:nth-child(1) { transition-delay: 0ms; } .insights-grid .card:nth-child(2) { transition-delay: 100ms; } .insights-grid .card:nth-child(3) { transition-delay: 200ms; } .insights-grid .card:nth-child(4) { transition-delay: 300ms; }
+.insights-grid .card:hover { transform: translateY(-6px) !important; border-color: rgba(212,175,55,0.35) !important; box-shadow: 0 20px 50px rgba(0,0,0,0.7), 0 0 30px rgba(212,175,55,0.12), 0 0 0 1px rgba(212,175,55,0.18) !important; }
+#insights-view .chart-wrapper canvas { opacity: 0; transform: scale(0.94); transition: opacity 0.5s ease 0.15s, transform 0.5s cubic-bezier(0.22,1,0.36,1) 0.15s; }
+#insights-view.chart-ready .chart-wrapper canvas { opacity: 1; transform: scale(1); }
+#insights-view .card:nth-child(1) .chart-wrapper canvas { transition-delay: 0.1s; } #insights-view .card:nth-child(2) .chart-wrapper canvas { transition-delay: 0.2s; } #insights-view .card:nth-child(3) .chart-wrapper canvas { transition-delay: 0.3s; } #insights-view .card:nth-child(4) .chart-wrapper canvas { transition-delay: 0.4s; }
+.view-panel.active .animate-fade-in { animation: cardEntrance 0.5s cubic-bezier(0.22,1,0.36,1) forwards; }
+.card.hover-glow:hover, .copilot-card:hover { transform: translateY(-4px); }
+.nav-item { transition: color 0.25s ease-in-out, transform 0.25s ease-in-out; }
+.nav-item::after { transition: transform 0.25s ease-in-out; }
+.chart-wrapper { transition: opacity 0.4s ease; }
+
+@media (max-width: 1024px) {
+  .top-nav-center { gap: 20px; }
+  .dashboard-row, .simulator-layout { grid-template-columns: 1fr; }
+  .hero-content { flex-direction: column; align-items: center; gap: 32px; text-align: center; }
+  .explainability-content { flex-direction: column; }
+  .copilot-grid { grid-template-columns: repeat(2, 1fr); }
+  .insights-grid { grid-template-columns: 1fr; }
+  .col-span-2 { grid-column: span 1; }
+}
+@media (max-width: 768px) {
+  .topbar { padding: 0 20px; }
+  .top-nav-center { gap: 16px; }
+  .logo-name { display: none; }
+  .views-wrapper { padding: 76px 20px 60px; }
+  .copilot-grid { grid-template-columns: 1fr; }
+  .auth-heading { font-size: 32px; }
+  #toast-container { bottom: 20px; right: 20px; left: 20px; }
+  .toast { min-width: 0; width: 100%; transform: translateY(100%); }
+  .toast.show { transform: translateY(0); }
+}
+</style>
+</head>
+<body>
+
+<div id="page-transition"></div>
+
+<!-- Background -->
+<div id="bg-layer">
+    <div id="grain"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+</div>
+
+<!-- AI Deep Scan Overlay -->
+<div id="deep-scan-overlay">
+    <div class="scanner-line"></div>
+    <div class="scan-text gold-shimmer">ANALYZING PORTFOLIO VECTORS...</div>
+</div>
+
+<!-- Notifications Hub -->
+<div id="toast-container"></div>
+
+<!-- App Container -->
+<div class="app-container">
+    <main class="main-content">
+
+        <!-- Top Navbar -->
+        <header class="topbar glass-panel-top">
+            <div class="topbar-left">
+                <!-- Back to Login -->
+                <button id="back-nav-btn" onclick="navigateTo('luxury-login.html')" title="Back to Login">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+                    Login
+                </button>
+                <div class="logo-mark">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <polygon points="10,2 18,6 18,14 10,18 2,14 2,6" stroke="#D4AF37" stroke-width="1.5" stroke-linejoin="round"/>
+                        <polygon points="10,5 15,8 15,12 10,15 5,12 5,8" fill="rgba(212,175,55,0.2)" stroke="#D4AF37" stroke-width="1" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <span class="logo-name">TrustMetric</span>
+            </div>
+            <nav class="top-nav top-nav-center">
+                <button class="nav-item top-nav-item active" data-target="dashboard-view">Dashboard</button>
+                <button class="nav-item top-nav-item" data-target="insights-view">Analytics</button>
+                <button class="nav-item top-nav-item" data-target="simulator-view">Simulator</button>
+                <button class="nav-item top-nav-item" data-target="upload-view">Upload</button>
+                <button class="nav-item top-nav-item" data-target="history-view">History</button>
+                <button class="nav-item top-nav-item" data-target="advisor-view">Advisor</button>
+            </nav>
+            <div class="topbar-right">
+                <div class="live-status">
+                    <span class="status-dot pulse-dot"></span>
+                    <span class="status-text">Sys: Optimal</span>
+                </div>
+                <div class="user-avatar" id="user-avatar-display" title="Signed in">
+                    <img src="https://ui-avatars.com/api/?name=Executive&background=111&color=D4AF37" alt="User">
+                </div>
+                <button onclick="signOut()" style="
+                    display:flex;align-items:center;gap:7px;
+                    background:rgba(10,10,10,0.6);backdrop-filter:blur(12px);
+                    border:1px solid rgba(212,175,55,0.22);border-radius:10px;
+                    padding:7px 14px;cursor:pointer;
+                    font-family:'Outfit',sans-serif;font-size:12px;font-weight:500;
+                    color:rgba(212,175,55,0.85);
+                    transition:border-color 0.2s,box-shadow 0.2s,color 0.2s;
+                " onmouseover="this.style.borderColor='rgba(212,175,55,0.55)';this.style.boxShadow='0 0 14px rgba(212,175,55,0.12)';this.style.color='#D4AF37'"
+                   onmouseout="this.style.borderColor='rgba(212,175,55,0.22)';this.style.boxShadow='none';this.style.color='rgba(212,175,55,0.85)'">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                        <polyline points="16 17 21 12 16 7"/>
+                        <line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                    Sign Out
+                </button>
+            </div>
+        </header>
+
+        <!-- Views Container -->
+        <div class="views-wrapper">
+
+            <!-- VIEW 1: DASHBOARD -->
+            <div id="dashboard-view" class="view-panel active">
+                <div class="welcome-header animate-fade-in up">
+                    <h2 class="auth-heading gold-shimmer block-reveal">Portfolio Overview</h2>
+                    <p class="auth-subtext typing-effect">Sys: Compiling real-time institutional grade financial identity matrix...</p>
+                </div>
+
+                <section class="overview-grid animate-fade-in up d-delay-1">
+                    <div class="card hero-glass-card" data-tilt data-tilt-max="3" data-tilt-speed="400" data-tilt-glare data-tilt-max-glare="0.15" data-tilt-scale="1.01">
+                        <div class="hero-content">
+                            <div class="score-ring-container">
+                                <svg class="score-ring" viewBox="0 0 160 160">
+                                    <circle class="ring-bg" cx="80" cy="80" r="70"></circle>
+                                    <circle class="ring-progress" id="hero-progress" cx="80" cy="80" r="70" stroke-dasharray="439.8" stroke-dashoffset="439.8"></circle>
+                                </svg>
+                                <div class="score-display">
+                                    <div class="score-value counter gold-text" data-target="812" id="hero-score">0</div>
+                                    <div class="ts-label">Trust Index</div>
+                                </div>
+                            </div>
+                            <div class="hero-metrics">
+                                <div class="metric-row">
+                                    <div class="metric-icon success-glass"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></div>
+                                    <div><div class="ts-label">Risk Profile</div><div class="metric-val text-success" id="hero-risk">Tier 1 Elite</div></div>
+                                </div>
+                                <div class="metric-row">
+                                    <div class="metric-icon gold-glass"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg></div>
+                                    <div><div class="ts-label">Matrix Confidence</div><div class="metric-val text-white" id="hero-conf">94%</div></div>
+                                </div>
+                                <div class="metric-row">
+                                    <div class="metric-icon gold-glass"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg></div>
+                                    <div><div class="ts-label">30-Day Trajectory</div><div class="metric-val text-success" id="hero-trend">+18 Points</div></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="dashboard-row">
+                    <section class="animate-fade-in up d-delay-2">
+                        <div class="card h-100 dark-glass-card hover-glow" data-tilt data-tilt-max="2" data-tilt-glare data-tilt-max-glare="0.1">
+                            <h3 class="card-heading">Composition Analysis</h3>
+                            <div class="explainability-content">
+                                <div class="explain-chart-container chart-blur-bg spinning-glow">
+                                    <canvas id="explainabilityDonut"></canvas>
+                                </div>
+                                <div class="explain-metrics" id="explain-metrics-container"></div>
+                            </div>
+                        </div>
+                    </section>
+                    <section class="animate-fade-in up d-delay-3">
+                        <div class="card h-100 gold-border-card" data-tilt data-tilt-max="4" data-tilt-glare data-tilt-max-glare="0.2">
+                            <h3 class="card-heading">Capital Issuance</h3>
+                            <div class="credit-metric">
+                                <div class="ts-label">Pre-Approved Capital</div>
+                                <div class="cl-value gold-text" id="credit-loan">—</div>
+                            </div>
+                            <div class="credit-flex">
+                                <div><div class="ts-label">Reliability</div><div class="cl-subval text-success" id="credit-reliability">—</div></div>
+                                <div><div class="ts-label">Classification</div><div class="cl-subval text-success" id="credit-risk">—</div></div>
+                            </div>
+                            <div style="margin:12px 0 4px;display:flex;justify-content:space-between;align-items:center">
+                                <span class="ts-label">Eligible Range</span>
+                                <span id="credit-range" style="font-size:13px;color:var(--gold);font-family:var(--font-display);letter-spacing:0.02em">—</span>
+                            </div>
+                            <div class="emi-calculator styling-lux">
+                                <div class="ts-label" style="margin-bottom:12px;">Repayment Estimator</div>
+                                <div class="emi-input-group"><label>Principal (₹)</label><input type="number" id="emi-amount" value="" placeholder="—" class="gold-input"></div>
+                                <div class="emi-input-group"><label>Term (Mo)</label><input type="number" id="emi-months" value="24" class="gold-input" max="60"></div>
+                                <div class="emi-result"><span class="ts-label">Monthly Obligation</span><strong class="gold-text" id="emi-output">—</strong></div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <section class="animate-fade-in up d-delay-4">
+                    <div class="ai-heading-wrapper">
+                        <h3 class="card-heading">AI Actionable Directives</h3>
+                        <span class="live-pulse-badge">LIVE AI AGENT</span>
+                    </div>
+                    <div class="copilot-grid" id="copilot-grid"></div>
+                </section>
+            </div>
+
+            <!-- VIEW 2: INSIGHTS -->
+            <div id="insights-view" class="view-panel hidden">
+                <div class="welcome-header animate-fade-in up">
+                    <h2 class="auth-heading gold-shimmer block-reveal">Deep Analytics</h2>
+                    <p class="auth-subtext typing-effect">Sys: Granular breakdown of cashflow and behavior trajectories.</p>
+                </div>
+                <div class="insights-grid">
+                    <div class="card dark-glass-card hover-glow animate-fade-in up" data-tilt data-tilt-max="2" data-tilt-glare data-tilt-max-glare="0.1">
+                        <h3 class="card-heading">Risk Vector Analysis</h3>
+                        <div class="chart-wrapper"><canvas id="radarRiskChart"></canvas></div>
+                    </div>
+                    <div class="card dark-glass-card hover-glow animate-fade-in up d-delay-1" data-tilt data-tilt-max="2" data-tilt-glare data-tilt-max-glare="0.1">
+                        <h3 class="card-heading">Score Dimension Breakdown</h3>
+                        <div class="chart-wrapper"><canvas id="breakdownBarChart"></canvas></div>
+                    </div>
+                    <div class="card dark-glass-card hover-glow col-span-2 animate-fade-in up d-delay-2" data-tilt data-tilt-max="2" data-tilt-glare data-tilt-max-glare="0.1">
+                        <h3 class="card-heading">Financial Insights</h3>
+                        <div id="analytics-insights-list" style="display:flex;flex-direction:column;gap:12px;padding-top:8px">
+                            <div style="color:var(--gray-light);font-size:13px;opacity:0.6">Generate a trust score to see your personalised insights here.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW 3: SIMULATOR -->
+            <div id="simulator-view" class="view-panel hidden">
+                <div class="welcome-header animate-fade-in up">
+                    <h2 class="auth-heading gold-shimmer block-reveal">Trajectory Simulator</h2>
+                    <p class="auth-subtext typing-effect">Sys: Model future outcomes by adjusting behavioral thresholds.</p>
+                </div>
+                <div class="simulator-layout">
+                    <div class="card dark-glass-card animate-fade-in up d-delay-1" data-tilt data-tilt-max="2" data-tilt-glare data-tilt-max-glare="0.1">
+                        <h3 class="card-heading">Stochastic Levers</h3>
+                        <p class="auth-subtext" style="font-size:13px; margin-bottom: 24px;">Quantify the impact of prospective financial decisions via neural modeling.</p>
+                        <div class="slider-group">
+                            <div class="slider-header"><label class="ts-label">Liquid Capital Retention</label><span class="slider-val text-white" id="val-lifestyle">0%</span></div>
+                            <input type="range" id="sim-lifestyle" min="0" max="30" value="0" class="gold-slider">
+                        </div>
+                        <div class="slider-group">
+                            <div class="slider-header"><label class="ts-label">Asset Acquisition Rate</label><span class="slider-val text-white" id="val-savings">+0%</span></div>
+                            <input type="range" id="sim-savings" min="0" max="25" value="0" class="gold-slider">
+                        </div>
+                        <div class="slider-group">
+                            <div class="slider-header"><label class="ts-label">Obligation Punctuality</label><span class="slider-val text-white" id="val-bills">Baseline</span></div>
+                            <input type="range" id="sim-bills" min="0" max="2" value="0" class="gold-slider">
+                            <div class="slider-ticks ts-label"><span>Base</span><span>Optimized</span><span>Perfect</span></div>
+                        </div>
+                        <button class="signin-btn" id="btn-reset-sim">Reset Model</button>
+                    </div>
+                    <div class="card dark-glass-card animate-fade-in up d-delay-2" data-tilt data-tilt-max="5" data-tilt-glare data-tilt-max-glare="0.25">
+                        <div class="sim-scores">
+                            <div><div class="ts-label">Present Value</div><div class="sim-number text-white" id="sim-current-score">—</div></div>
+                            <div class="sim-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="1.5"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></div>
+                            <div><div class="ts-label">Modeled Value</div><div class="sim-number gold-text glow-text" id="sim-projected-score">—</div></div>
+                        </div>
+                        <div class="sim-delta lux-delta" id="sim-delta-msg">Adjust levers to compute delta.</div>
+                        <div id="sim-new-tier" style="margin-top:12px;text-align:center;font-size:13px;color:var(--gray-light);letter-spacing:0.04em;min-height:20px"></div>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- ═══ UPLOAD VIEW ═════════════════════════════════════════ -->
+            <div id="upload-view" class="view-panel hidden">
+                <div class="welcome-header animate-fade-in up">
+                    <h2 class="auth-heading gold-shimmer block-reveal">Upload Financial Data</h2>
+                    <p class="auth-subtext">Import JSON, CSV, or PDF bank statement to calculate your trust score.</p>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start">
+
+                    <!-- Left: upload + form inputs -->
+                    <div class="card dark-glass-card animate-fade-in up d-delay-1">
+                        <h3 class="card-heading">Import &amp; Configure</h3>
+
+                        <!-- Drop zone -->
+                        <div id="upload-dropzone"
+                            onclick="document.getElementById('upload-file-input').click()"
+                            ondragover="event.preventDefault();this.style.borderColor='var(--gold)'"
+                            ondragleave="this.style.borderColor='rgba(212,175,55,0.25)'"
+                            ondrop="handleFileDrop(event)"
+                            style="border:2px dashed rgba(212,175,55,0.25);border-radius:12px;padding:36px 20px;text-align:center;cursor:pointer;transition:border-color 0.3s;margin-bottom:16px">
+                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.55)" stroke-width="1.5" style="display:block;margin:0 auto 12px">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17 8 12 3 7 8"/>
+                                <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                            <div style="color:rgba(255,255,255,0.55);font-size:14px;margin-bottom:6px">Drop file or click to browse</div>
+                            <div style="color:rgba(255,255,255,0.25);font-size:12px">JSON · CSV · PDF</div>
+                        </div>
+                        <input type="file" id="upload-file-input" accept=".json,.csv,.pdf" style="display:none" onchange="handleFileSelect(event)">
+                        <div id="upload-file-status" style="font-size:13px;color:var(--gray-light);min-height:18px;margin-bottom:14px"></div>
+
+                        <!-- Financial inputs -->
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+                            <div>
+                                <div class="ts-label" style="margin-bottom:5px">Monthly Income (₹)</div>
+                                <input type="number" id="up-income" class="gold-input" style="width:100%" placeholder="75000" value="75000">
+                            </div>
+                            <div>
+                                <div class="ts-label" style="margin-bottom:5px">Emergency Savings (₹)</div>
+                                <input type="number" id="up-savings" class="gold-input" style="width:100%" placeholder="150000" value="150000">
+                            </div>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+                            <div>
+                                <div class="ts-label" style="margin-bottom:5px">Bills Paid on Time</div>
+                                <input type="number" id="up-bills-paid" class="gold-input" style="width:100%" value="20">
+                            </div>
+                            <div>
+                                <div class="ts-label" style="margin-bottom:5px">Total Bills</div>
+                                <input type="number" id="up-bills-total" class="gold-input" style="width:100%" value="24">
+                            </div>
+                        </div>
+                        <div style="margin-bottom:20px">
+                            <div class="ts-label" style="margin-bottom:8px">Insurance Coverage</div>
+                            <div style="display:flex;gap:20px">
+                                <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--gray-light);cursor:pointer">
+                                    <input type="checkbox" id="up-ins-health" checked style="accent-color:var(--gold)"> Health
+                                </label>
+                                <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--gray-light);cursor:pointer">
+                                    <input type="checkbox" id="up-ins-life" style="accent-color:var(--gold)"> Life
+                                </label>
+                                <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--gray-light);cursor:pointer">
+                                    <input type="checkbox" id="up-ins-vehicle" style="accent-color:var(--gold)"> Vehicle
+                                </label>
+                            </div>
+                        </div>
+                        <button class="signin-btn" id="btn-calc-score" onclick="calcTrustScore()" disabled style="opacity:0.45;cursor:not-allowed" title="Upload a file or load demo data first">Generate Trust Score</button>
+                        <button class="signin-btn" id="btn-download-pdf" onclick="downloadPDFReport()" disabled style="margin-top:6px;background:transparent;border:1px solid rgba(212,175,55,0.4);color:var(--gold);opacity:0.45;cursor:not-allowed" title="Generate a Trust Score first">Download Report</button>
+                        <div id="upload-error" style="font-size:13px;color:#ef4444;margin-top:10px;min-height:18px"></div>
+                    </div>
+
+                    <!-- Right: transaction preview -->
+                    <div class="card dark-glass-card animate-fade-in up d-delay-2">
+                        <h3 class="card-heading">Transaction Preview</h3>
+                        <div id="txn-preview" style="max-height:440px;overflow-y:auto;font-size:12px">
+                            <div style="color:var(--gray-light);text-align:center;padding:48px 0;opacity:0.45">
+                                No transactions loaded.<br>Upload a file or load demo data.
+                            </div>
+                        </div>
+                        <button onclick="loadDemoData()" class="signin-btn"
+                            style="margin-top:14px;background:transparent;border:1px solid rgba(212,175,55,0.3);color:var(--gold)">
+                            Load Demo Dataset
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ HISTORY VIEW ═════════════════════════════════════════ -->
+            <div id="history-view" class="view-panel hidden">
+                <div class="welcome-header animate-fade-in up">
+                    <h2 class="auth-heading gold-shimmer block-reveal">Score History</h2>
+                    <p class="auth-subtext">Your saved trust score reports retrieved from secure encrypted storage.</p>
+                </div>
+                <div id="history-list" style="display:flex;flex-direction:column;gap:16px">
+                    <div style="color:var(--gray-light);text-align:center;padding:48px;opacity:0.45">Loading…</div>
+                </div>
+            </div>
+
+            <!-- ═══ ADVISOR (CHATBOT) VIEW ════════════════════════════════ -->
+            <div id="advisor-view" class="view-panel hidden">
+                <div class="welcome-header animate-fade-in up">
+                    <h2 class="auth-heading gold-shimmer block-reveal">AI Financial Advisor</h2>
+                    <p class="auth-subtext">Ask anything about your score, loan eligibility, or how to improve.</p>
+                </div>
+                <div class="card dark-glass-card" style="display:flex;flex-direction:column;height:580px">
+                    <div class="ai-status-panel">
+                        <div class="status-circle good"></div>
+                        <span style="font-size:13px;color:var(--gray-light)">AI Advisor Online</span>
+                        <span class="live-pulse-badge" style="margin-left:auto">Powered By TrustMetric</span>
+                    </div>
+                    <div id="chat-messages" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding-bottom:12px;scroll-behavior:smooth">
+                        <div style="display:flex;gap:10px;align-items:flex-start">
+                            <div style="width:28px;height:28px;border-radius:50%;background:rgba(212,175,55,0.12);border:1px solid rgba(212,175,55,0.28);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5"><path d="M12 2L3 7l9 5 9-5-9-5z"/><path d="M3 12l9 5 9-5"/></svg>
+                            </div>
+                            <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;border-bottom-left-radius:4px;padding:12px 16px;max-width:78%;font-size:13px;color:rgba(255,255,255,0.78);line-height:1.65">
+                                Hello! I&rsquo;m your AI financial advisor. Ask me anything about your trust score, loan options, or how to build better financial habits.
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:10px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.05)">
+                        <input type="text" id="chat-input" class="gold-input" style="flex:1;text-align:left;direction:ltr"
+                            placeholder="Ask about your score, loans, savings…"
+                            onkeydown="if(event.key==='Enter')sendChat()">
+                        <button onclick="sendChat()"
+                            style="padding:12px 20px;background:var(--gold);color:var(--black);border:none;border-radius:10px;cursor:pointer;font-family:var(--font-body);font-weight:600;font-size:13px;white-space:nowrap;transition:background 0.2s"
+                            onmouseover="this.style.background='var(--gold-deep)'" onmouseout="this.style.background='var(--gold)'">Send</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════
+   CONFIG & API HELPERS
+═══════════════════════════════════════════ */
+const API_BASE = window.location.origin;  // Backend server
+
+function getUID()   { return localStorage.getItem('tm_user_id'); }
+function getEmail() { return localStorage.getItem('tm_email') || 'Executive'; }
+
+async function apiPost(path, body) {
+    const headers = { 'Content-Type': 'application/json' };
+    const uid = getUID();
+    if (uid) headers['X-User-ID'] = uid;
+    const res = await fetch(API_BASE + path, { method: 'POST', headers, body: JSON.stringify(body) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+    return data;
+}
+
+async function apiGet(path) {
+    const headers = {};
+    const uid = getUID();
+    if (uid) headers['X-User-ID'] = uid;
+    const res = await fetch(API_BASE + path, { headers });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+}
+
+/* ═══════════════════════════════════════════
+   APP STATE
+═══════════════════════════════════════════ */
+let parsedTransactions = [];   // transactions from uploaded file
+let lastScoreResult    = null; // last API response from /calculate-trust-score
+let charts = {};
+
+const apiData = {
+    user: { score: 0, risk: '—', confidence: '—', trend: 0 },
+    explainability: [],
+    copilot: [],
+    notifications: [
+        { title:'AI Insight',      msg:'System detected favorable conditions for your asset mix.' },
+        { title:'Security',        msg:'Encrypted connection established with financial matrix.' },
+        { title:'Matrix Update',   msg:'Your 30-day trajectory has been recalculated.' },
+        { title:'Market Alert',    msg:'High volatility detected in liquid sectors.' }
+    ]
+};
+
+/* ═══════════════════════════════════════════
+   PAGE NAVIGATION
+═══════════════════════════════════════════ */
+function navigateTo(url) {
+    const overlay = document.getElementById('page-transition');
+    overlay.classList.add('fade-out');
+    setTimeout(() => { window.location.href = url; }, 450);
+}
+
+/* ═══════════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════════ */
+function setupNavigation() {
+    const navItems   = document.querySelectorAll('.nav-item[data-target]');
+    const viewPanels = document.querySelectorAll('.view-panel');
+
+    navItems.forEach(item => {
+        item.addEventListener('click', () => {
+            const targetId = item.getAttribute('data-target');
+            navItems.forEach(n => n.classList.remove('active'));
+            item.classList.add('active');
+            viewPanels.forEach(panel => {
+                if (panel.id === targetId) {
+                    panel.classList.remove('hidden');
+                    panel.querySelectorAll('.animate-fade-in').forEach(el => {
+                        el.classList.remove('visible'); void el.offsetWidth; el.classList.add('visible');
+                    });
+                    if (targetId === 'insights-view') {
+                        // Re-init when first visited or when a new score result is available
+                        const currentVer = lastScoreResult ? lastScoreResult.trust_score : 0;
+                        if (!charts.insightsInitialized || charts.insightsScoreVer !== currentVer) {
+                            ['radar','breakdown'].forEach(k => {
+                                if (charts[k]) { charts[k].destroy(); charts[k] = null; }
+                            });
+                            initInsightsCharts();
+                            charts.insightsInitialized = true;
+                            charts.insightsScoreVer = currentVer;
+                        }
+                    }
+                    if (targetId === 'insights-view') {
+                        const cards = panel.querySelectorAll('.insights-grid .card');
+                        cards.forEach(c => c.classList.remove('card-visible'));
+                        void panel.offsetWidth;
+                        requestAnimationFrame(() => cards.forEach(c => c.classList.add('card-visible')));
+                        panel.classList.remove('chart-ready');
+                        void panel.offsetWidth;
+                        setTimeout(() => panel.classList.add('chart-ready'), 80);
+                    }
+                    if (targetId === 'history-view') loadHistory();
+                } else {
+                    panel.classList.add('hidden');
+                }
+            });
+        });
+    });
+
+    // Navigation setup complete — sign-out handled directly via onclick="signOut()" in HTML
+}
+
+function signOut() {
+    localStorage.removeItem('tm_user_id');
+    localStorage.removeItem('tm_email');
+    navigateTo('luxury-login.html');
+}
+
+/* ═══════════════════════════════════════════
+   CSV PARSING  (PapaParse + keyword fallback)
+═══════════════════════════════════════════ */
+const CATEGORY_MAP = {
+    income:     ['salary','income','credit','deposit','cashback','refund'],
+    rent:       ['rent','lease','accommodation'],
+    utility:    ['electric','electricity','water','gas','internet','wifi','phone','mobile','jio','airtel','mseb','bsnl'],
+    grocery:    ['grocery','grocer','supermarket','mart','dmart','reliance','big bazaar','food','vegetables'],
+    investment: ['sip','mutual fund','zerodha','groww','equity','investment','lic','nps','ppf','fd','fixed deposit','gold','sgb'],
+    lifestyle:  ['zomato','swiggy','netflix','amazon prime','hotstar','spotify','uber','ola','myntra','flipkart','amazon','shopping','restaurant','cafe','movie','entertainment'],
+};
+
+function inferCategory(merchant) {
+    const m = (merchant || '').toLowerCase();
+    for (const [cat, kws] of Object.entries(CATEGORY_MAP))
+        if (kws.some(kw => m.includes(kw))) return cat;
+    return 'lifestyle';
+}
+
+function parseCSV(text) {
+    return new Promise(resolve => {
+        const rowToTxn = row => {
+            const keys = {};
+            Object.keys(row).forEach(k => keys[k.toLowerCase().trim()] = row[k]);
+            const merchant = keys.merchant || keys.description || keys.narration || 'Transaction';
+            const amount   = parseFloat((keys.amount || keys.debit || '0').toString().replace(/,/g,'')) || 0;
+            const date     = keys.date || keys['transaction date'] || new Date().toISOString().slice(0,10);
+            const category = keys.category || inferCategory(merchant);
+            return amount > 0 ? { date, merchant: merchant.toString().slice(0,50), amount, category } : null;
+        };
+
+        if (window.Papa) {
+            Papa.parse(text, {
+                header: true, skipEmptyLines: true,
+                complete: r => resolve(r.data.map(rowToTxn).filter(Boolean))
+            });
+        } else {
+            // Minimal fallback
+            const lines   = text.trim().split('\n');
+            const headers = lines[0].split(',').map(h => h.replace(/"/g,'').trim().toLowerCase());
+            const txns    = [];
+            for (let i = 1; i < lines.length; i++) {
+                const vals = lines[i].split(',').map(v => v.replace(/"/g,'').trim());
+                if (vals.length < 2) continue;
+                const row  = {};
+                headers.forEach((h,idx) => row[h] = vals[idx] || '');
+                const t = rowToTxn(row);
+                if (t) txns.push(t);
+            }
+            resolve(txns);
+        }
+    });
+}
+
+/* ═══════════════════════════════════════════
+   PDF PARSING  (pdf.js, loaded on demand)
+═══════════════════════════════════════════ */
+async function parsePDF(file) {
+    // Load pdf.js on demand
+    if (!window.pdfjsLib) {
+        await new Promise((res, rej) => {
+            const s = document.createElement('script');
+            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+            s.onload = () => {
+                pdfjsLib.GlobalWorkerOptions.workerSrc =
+                    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                res();
+            };
+            s.onerror = () => rej(new Error('Failed to load PDF.js library. Check your internet connection.'));
+            document.head.appendChild(s);
+        });
+    }
+
+    let pdf;
+    try {
+        const buf = await file.arrayBuffer();
+        pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+    } catch (e) {
+        throw new Error('Could not read PDF file. Ensure it is a valid, non-encrypted bank statement PDF.');
+    }
+
+    // Extract text items page-by-page, preserving Y-position grouping for row detection
+    const allLines = [];
+    for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const tc   = await page.getTextContent();
+
+        // Group items by approximate Y-position (within 4pt) to reconstruct rows
+        const rowMap = {};
+        for (const item of tc.items) {
+            if (!item.str.trim()) continue;
+            const y = Math.round(item.transform[5] / 4) * 4; // bucket to 4pt grid
+            if (!rowMap[y]) rowMap[y] = [];
+            rowMap[y].push({ x: item.transform[4], text: item.str });
+        }
+        // Sort rows top→bottom (descending Y in PDF coords), items left→right
+        const sortedYs = Object.keys(rowMap).map(Number).sort((a, b) => b - a);
+        for (const y of sortedYs) {
+            const rowText = rowMap[y]
+                .sort((a, b) => a.x - b.x)
+                .map(it => it.text)
+                .join(' ');
+            allLines.push(rowText);
+        }
+        allLines.push(''); // page separator
+    }
+
+    // --- Parse transaction rows ---
+    const txns = [];
+    // dateRe: non-global, used with .match() per line — no lastIndex issue
+    const dateRe = /(\d{4}-\d{2}-\d{2}|\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}|\d{2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4})/i;
+
+    const MONTH_MAP = { jan:'01',feb:'02',mar:'03',apr:'04',may:'05',jun:'06',jul:'07',aug:'08',sep:'09',oct:'10',nov:'11',dec:'12' };
+
+    function normaliseDate(raw) {
+        if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+        const m = raw.match(/(\d{1,2})\s+(\w{3})\s+(\d{4})/i);
+        if (m) return `${m[3]}-${MONTH_MAP[m[2].toLowerCase()]||'01'}-${m[1].padStart(2,'0')}`;
+        const parts = raw.split(/[-\/]/);
+        if (parts.length === 3) {
+            let [d, mo, y] = parts;
+            if (y.length === 2) y = '20' + y;
+            return `${y}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}`;
+        }
+        return raw;
+    }
+
+    for (const line of allLines) {
+        const dm = line.match(dateRe);
+        if (!dm) continue;
+
+        // NEW: recreate regex each iteration — /g flag retains lastIndex on a shared object,
+        // causing every other line to be skipped when the prior match ended at EOF.
+        const amtRe = /(?:Rs\.?|₹|INR)?\s*([\d,]{1,3}(?:,\d{3})*\.\d{2}|\d{4,}(?:\.\d{2})?)/g;
+
+        const amounts = [];
+        let match;
+        while ((match = amtRe.exec(line)) !== null) {
+            const v = parseFloat(match[1].replace(/,/g, ''));
+            // Ignore values that look like day/month/year fragments (≤ 31 or 4-digit years)
+            if (v > 31 && v !== 2024 && v !== 2025 && v !== 2026 && v <= 10_000_000) {
+                amounts.push(v);
+            }
+        }
+        if (!amounts.length) continue;
+
+        // Use the last numeric value — bank statements put amount at end of row
+        const amount = amounts[amounts.length - 1];
+
+        // Build description: strip date, currency symbols, all numbers, punctuation noise
+        let desc = line
+            .replace(dateRe, '')
+            .replace(/(?:Rs\.?|₹|INR)\s*/gi, '')
+            .replace(/[\d,]+(?:\.\d+)?/g, '')
+            .replace(/[^\w\s\-&\/]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+
+        if (!desc || desc.length < 2) desc = 'Bank Transaction';
+
+        const date = normaliseDate(dm[1]);
+        txns.push({
+            date,
+            merchant: desc.slice(0, 60),
+            amount,
+            category: inferCategory(desc)
+        });
+    }
+
+    if (!txns.length) {
+        throw new Error(
+            'Unable to parse this PDF. Please upload CSV or JSON.'
+        );
+    }
+
+    return txns.slice(0, 300);
+}
+
+/* ═══════════════════════════════════════════
+   FILE HANDLING
+═══════════════════════════════════════════ */
+async function handleFile(file) {
+    const ext    = file.name.split('.').pop().toLowerCase();
+    const status = document.getElementById('upload-file-status');
+    const errEl  = document.getElementById('upload-error');
+    status.style.color = 'var(--gold)';
+    status.textContent = `Processing ${file.name}…`;
+    errEl.textContent  = '';
+    try {
+        let txns = [];
+        if (ext === 'json') {
+            const parsed = JSON.parse(await file.text());
+            if (Array.isArray(parsed)) txns = parsed;
+            else if (parsed.transactions) {
+                txns = parsed.transactions;
+                if (parsed.monthly_income)    document.getElementById('up-income').value  = parsed.monthly_income;
+                if (parsed.emergency_savings) document.getElementById('up-savings').value = parsed.emergency_savings;
+                if (parsed.bill_payment_history) {
+                    document.getElementById('up-bills-paid').value  = parsed.bill_payment_history.bills_paid_on_time;
+                    document.getElementById('up-bills-total').value = parsed.bill_payment_history.total_bills;
+                }
+                if (parsed.insurance) {
+                    document.getElementById('up-ins-health').checked   = !!parsed.insurance.has_health_insurance;
+                    document.getElementById('up-ins-life').checked     = !!parsed.insurance.has_life_insurance;
+                    document.getElementById('up-ins-vehicle').checked  = !!parsed.insurance.has_vehicle_insurance;
+                }
+            }
+        } else if (ext === 'csv') {
+            txns = await parseCSV(await file.text());
+        } else if (ext === 'pdf') {
+            txns = await parsePDF(file);
+        } else {
+            throw new Error('Unsupported format. Use JSON, CSV, or PDF.');
+        }
+        parsedTransactions = txns;
+        renderTxnPreview(txns);
+        status.style.color = 'var(--success)';
+        status.textContent = `✓ ${txns.length} transactions loaded from ${file.name}`;
+        // Enable the calculate button now that we have data
+        const calcBtn = document.getElementById('btn-calc-score');
+        if (calcBtn) { calcBtn.disabled = false; calcBtn.style.opacity = ''; calcBtn.style.cursor = ''; calcBtn.title = ''; }
+    } catch (err) {
+        status.style.color = 'var(--risk)';
+        status.textContent = 'Parse failed.';
+        errEl.textContent  = err.message;
+    }
+}
+
+function handleFileSelect(e) { if (e.target.files[0]) handleFile(e.target.files[0]); }
+function handleFileDrop(e) {
+    e.preventDefault();
+    document.getElementById('upload-dropzone').style.borderColor = 'rgba(212,175,55,0.25)';
+    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+}
+
+function renderTxnPreview(txns) {
+    const el = document.getElementById('txn-preview');
+    const catColor = { income:'#22c55e',rent:'#eab308',utility:'#60a5fa',grocery:'#a78bfa',investment:'#D4AF37',lifestyle:'#f87171' };
+    if (!txns.length) { el.innerHTML = '<div style="color:var(--gray-light);text-align:center;padding:40px;opacity:0.45">No transactions.</div>'; return; }
+    el.innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:8px;padding:0 0 8px;border-bottom:1px solid rgba(255,255,255,0.05);color:var(--gray-light);font-size:10px;letter-spacing:0.06em;text-transform:uppercase">
+            <span>Merchant</span><span>Date</span><span>Cat</span><span style="text-align:right">₹</span>
+        </div>
+        ${txns.slice(0,60).map(t=>`
+        <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.03);align-items:center">
+            <span style="color:rgba(255,255,255,0.82);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.merchant}</span>
+            <span style="color:var(--gray-light)">${t.date}</span>
+            <span style="background:${(catColor[t.category]||'#888')}22;color:${catColor[t.category]||'#888'};border-radius:4px;padding:1px 5px;font-size:10px">${t.category}</span>
+            <span style="color:var(--gold);text-align:right">${Number(t.amount).toLocaleString()}</span>
+        </div>`).join('')}
+        ${txns.length>60?`<div style="color:var(--gray-light);text-align:center;padding:8px 0;font-size:12px">…and ${txns.length-60} more</div>`:''}`;
+}
+
+function loadDemoData() {
+    const demo = [
+        {date:'2024-01-01',merchant:'Employer Salary',  amount:75000, category:'income'},
+        {date:'2024-01-03',merchant:'House Rent',        amount:18000, category:'rent'},
+        {date:'2024-01-05',merchant:'MSEB Electricity',  amount:1800,  category:'utility'},
+        {date:'2024-01-07',merchant:'Jio Recharge',      amount:699,   category:'utility'},
+        {date:'2024-01-09',merchant:'D-Mart Grocery',    amount:4200,  category:'grocery'},
+        {date:'2024-01-11',merchant:'Zerodha SIP',       amount:8000,  category:'investment'},
+        {date:'2024-01-13',merchant:'Zomato',            amount:1800,  category:'lifestyle'},
+        {date:'2024-01-15',merchant:'Amazon Shopping',   amount:3500,  category:'lifestyle'},
+        {date:'2024-01-17',merchant:'Netflix',           amount:649,   category:'lifestyle'},
+        {date:'2024-01-19',merchant:'Reliance Fresh',    amount:3100,  category:'grocery'},
+        {date:'2024-01-21',merchant:'LIC Premium',       amount:4500,  category:'investment'},
+        {date:'2024-01-23',merchant:'Uber Rides',        amount:1200,  category:'lifestyle'},
+        {date:'2024-01-25',merchant:'Gold SGB',          amount:5000,  category:'investment'},
+        {date:'2024-01-27',merchant:'Airtel Broadband',  amount:999,   category:'utility'},
+        {date:'2024-01-29',merchant:'BookMyShow',        amount:800,   category:'lifestyle'},
+    ];
+    parsedTransactions = demo;
+    renderTxnPreview(demo);
+    document.getElementById('upload-file-status').style.color = 'var(--success)';
+    document.getElementById('upload-file-status').textContent = `✓ Demo dataset loaded (${demo.length} transactions)`;
+    const calcBtn = document.getElementById('btn-calc-score');
+    if (calcBtn) { calcBtn.disabled = false; calcBtn.style.opacity = ''; calcBtn.style.cursor = ''; calcBtn.title = ''; }
+}
+
+/* ═══════════════════════════════════════════
+   CALCULATE TRUST SCORE  →  POST /calculate-trust-score
+═══════════════════════════════════════════ */
+async function calcTrustScore() {
+    const btn   = document.getElementById('btn-calc-score');
+    const errEl = document.getElementById('upload-error');
+    errEl.textContent = '';
+
+    if (!parsedTransactions.length) {
+        errEl.textContent = 'Please upload a file or load the demo dataset first.';
+        return;
+    }
+
+    const payload = {
+        monthly_income:    parseFloat(document.getElementById('up-income').value)     || 75000,
+        emergency_savings: parseFloat(document.getElementById('up-savings').value)    || 150000,
+        bill_payment_history: {
+            bills_paid_on_time: parseInt(document.getElementById('up-bills-paid').value)  || 20,
+            total_bills:        parseInt(document.getElementById('up-bills-total').value) || 24,
+        },
+        insurance: {
+            has_health_insurance:  document.getElementById('up-ins-health').checked,
+            has_life_insurance:    document.getElementById('up-ins-life').checked,
+            has_vehicle_insurance: document.getElementById('up-ins-vehicle').checked,
+        },
+        transactions: parsedTransactions,
+    };
+
+    btn.disabled    = true;
+    btn.textContent = 'Calculating…';
+    btn.style.opacity = '0.7';
+    const overlay   = document.getElementById('deep-scan-overlay');
+    if (overlay) overlay.classList.add('active');
+
+    try {
+        const result = await apiPost('/calculate-trust-score', payload);
+        lastScoreResult = result;
+        const pdfBtn = document.getElementById('btn-download-pdf');
+        if (pdfBtn) { pdfBtn.disabled = false; pdfBtn.style.opacity = ''; pdfBtn.style.cursor = ''; pdfBtn.title = 'Download your trust score report as PDF'; }
+        applyScoreToUI(result);
+        if (overlay) overlay.classList.remove('active');
+        showToast('Score Calculated', `Trust Score: ${result.trust_score} — ${result.risk_tier}`);
+        // Navigate to dashboard
+        setTimeout(() => document.querySelector('[data-target="dashboard-view"]').click(), 400);
+    } catch (err) {
+        if (overlay) overlay.classList.remove('active');
+        errEl.textContent = err.message || 'Backend error. Is the server running on port 8000?';
+    } finally {
+        btn.disabled    = false;
+        btn.textContent = 'Generate Trust Score';
+        btn.style.opacity = '';
+    }
+}
+
+/* ─── Apply score result to every dashboard element ─── */
+function applyScoreToUI(r) {
+    // Core numbers
+    const bd = r.score_breakdown || {};
+    apiData.user.score      = r.trust_score;
+    apiData.user.risk       = r.risk_tier;
+    apiData.user.confidence = r.confidence_level;
+
+    // Hero ring & counter
+    const heroScore = document.getElementById('hero-score');
+    if (heroScore) {
+        heroScore.setAttribute('data-target', r.trust_score);
+        heroScore.textContent = '0';
+        animateNumber(heroScore);
+    }
+    animateTrustScoreRing(r.trust_score);
+    document.getElementById('hero-risk').textContent = r.risk_tier;
+    document.getElementById('hero-conf').textContent = r.confidence_level;
+
+    // Loan card
+    const loan = r.loan_eligibility || {};
+    // Loan card — always overwrite with backend values (no conditional guards)
+    const loanEl        = document.getElementById('credit-loan');
+    const reliabilityEl = document.getElementById('credit-reliability');
+    const riskEl        = document.getElementById('credit-risk');
+    const rangeEl       = document.getElementById('credit-range');
+    const emiAmtEl      = document.getElementById('emi-amount');
+    const emiOutEl      = document.getElementById('emi-output');
+
+    if (loan.recommended_loan != null) {
+        loanEl.textContent = '₹' + Number(loan.recommended_loan).toLocaleString('en-IN');
+        if (emiAmtEl) {
+            emiAmtEl.value = loan.recommended_loan;
+            // Auto-calculate EMI with 8% annual rate, 24-month default term
+            const p = loan.recommended_loan;
+            const n = parseInt(document.getElementById('emi-months')?.value) || 24;
+            const r = 0.08 / 12;
+            if (emiOutEl && p > 0) {
+                const emi = Math.round(p * r * Math.pow(1+r,n) / (Math.pow(1+r,n)-1));
+                emiOutEl.textContent = '₹' + emi.toLocaleString('en-IN');
+            }
+        }
+    } else {
+        loanEl.textContent = '—';
+        if (emiOutEl) emiOutEl.textContent = '—';
+    }
+
+    if (loan.repayment_reliability != null) {
+        reliabilityEl.textContent = loan.repayment_reliability + '%';
+    } else {
+        reliabilityEl.textContent = '—';
+    }
+
+    riskEl.textContent = r.risk_tier || '—';
+
+    // Loan range (e.g. [20000, 35000] → "₹20,000 – ₹35,000")
+    if (rangeEl) {
+        if (Array.isArray(loan.loan_range) && loan.loan_range.length === 2) {
+            const lo = Number(loan.loan_range[0]).toLocaleString('en-IN');
+            const hi = Number(loan.loan_range[1]).toLocaleString('en-IN');
+            rangeEl.textContent = `₹${lo} – ₹${hi}`;
+        } else {
+            rangeEl.textContent = '—';
+        }
+    }
+
+    // Explainability panel (donut + list)
+    apiData.explainability = [
+        { name:'Liquidity Reserves',  pct: Math.round(bd.liquidity        ||0), desc: r.insights?.[0]||'', status: (bd.liquidity        ||0)>60?'success':(bd.liquidity        ||0)>40?'warning':'risk' },
+        { name:'Credit Discipline',   pct: Math.round(bd.discipline       ||0), desc: r.insights?.[1]||'', status: (bd.discipline       ||0)>70?'success':(bd.discipline       ||0)>50?'warning':'risk' },
+        { name:'Income Stability',    pct: Math.round(bd.stability        ||0), desc: r.insights?.[2]||'', status: (bd.stability        ||0)>60?'success':(bd.stability        ||0)>40?'warning':'risk' },
+        { name:'Asset Portfolio',     pct: Math.round(bd.asset_protection ||0), desc: r.insights?.[3]||'', status: (bd.asset_protection ||0)>60?'success':(bd.asset_protection ||0)>40?'warning':'risk' },
+        { name:'Risk Exposure',       pct: Math.round(bd.risk             ||0), desc: r.insights?.[4]||'', status: (bd.risk             ||0)>70?'success':(bd.risk             ||0)>45?'warning':'risk' },
+    ];
+
+    // AI copilot cards
+    apiData.copilot = (r.improvement_suggestions||[]).slice(0,3).map((s,i) => ({
+        title: ['Optimise Capital','Advance Clearance','Diversify Assets'][i] || 'Recommendation',
+        impact: Math.floor(Math.random()*14)+5,
+        desc: s
+    }));
+
+    // Re-render panels
+    const ec = document.getElementById('explain-metrics-container');
+    ec.innerHTML = '';
+    apiData.explainability.forEach(item => {
+        const d = document.createElement('div');
+        d.className = 'explain-item';
+        d.innerHTML = `<div class="explain-dot ${item.status}"></div><div class="explain-text-group"><div class="explain-head"><span class="explain-title">${item.name}</span><span class="explain-pct">${item.pct}<span style="font-size:9px;opacity:0.55;margin-left:1px">/100</span></span></div><div class="explain-desc">${item.desc}</div></div>`;
+        ec.appendChild(d);
+    });
+
+    const cg = document.getElementById('copilot-grid');
+    cg.innerHTML = '';
+    apiData.copilot.forEach(rec => {
+        const d = document.createElement('div');
+        d.className = 'copilot-card';
+        d.innerHTML = `<h3 class="cr-title">${rec.title}</h3><div class="cr-impact"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 5v14"/><path d="m19 12-7-7-7 7"/></svg>+${rec.impact} Points</div><p class="cr-desc">${rec.desc}</p>`;
+        cg.appendChild(d);
+    });
+
+    // Rebuild donut
+    if (charts.explain) { charts.explain.destroy(); charts.explain = null; }
+    initDashboardCharts();
+
+    // Refresh analytics charts with real data if already open
+    charts.insightsScoreVer = -1; // invalidate so analytics re-renders on next visit
+
+    // Sync simulator "Present Value" display with the freshly calculated score
+    const simCurEl = document.getElementById('sim-current-score');
+    if (simCurEl) simCurEl.textContent = r.trust_score;
+    const simProjEl = document.getElementById('sim-projected-score');
+    if (simProjEl && simProjEl.textContent === '—') simProjEl.textContent = r.trust_score;
+}
+
+/* ═══════════════════════════════════════════
+   SIMULATOR  →  POST /simulate-score
+═══════════════════════════════════════════ */
+function setupSimulator() {
+    const sLife    = document.getElementById('sim-lifestyle');
+    const sSave    = document.getElementById('sim-savings');
+    const sBill    = document.getElementById('sim-bills');
+    const vLife    = document.getElementById('val-lifestyle');
+    const vSave    = document.getElementById('val-savings');
+    const vBill    = document.getElementById('val-bills');
+    const outProj  = document.getElementById('sim-projected-score');
+    const outDelta = document.getElementById('sim-delta-msg');
+    const resetBtn = document.getElementById('btn-reset-sim');
+
+    let simTimer = null;
+
+    const updateSim = async () => {
+        const lVal = parseInt(sLife.value);
+        const sVal = parseInt(sSave.value);
+        const bVal = parseInt(sBill.value);
+        vLife.textContent = lVal + '%';
+        vSave.textContent = '+' + sVal + '%';
+        vBill.textContent = bVal === 0 ? 'Baseline' : bVal === 1 ? 'Optimized' : 'Perfect';
+
+        if (!lastScoreResult || !parsedTransactions.length) {
+            // Local estimation fallback — seed from real score if available
+            const base = lastScoreResult?.trust_score || apiData.user.score || 700;
+            // Keep displayed current score in sync
+            document.getElementById('sim-current-score').textContent = base;
+            let proj = base + Math.round((lVal / 30) * 20) + Math.round((sVal / 25) * 15) + (bVal * 8);
+            if (proj > 900) proj = 900;
+            outProj.textContent = proj;
+            outProj.className   = proj > base ? 'sim-number text-success glow-text' : 'sim-number gold-text glow-text';
+            outDelta.textContent = proj > base
+                ? `Estimated delta: +${proj - base} pts. Generate a trust score for precise simulation.`
+                : 'Upload data and generate a trust score to enable live simulation.';
+            outDelta.style.cssText = 'color:var(--gold);border:1px solid rgba(212,175,55,0.15);background:rgba(212,175,55,0.04)';
+            return;
+        }
+
+        // Debounced API call
+        clearTimeout(simTimer);
+        simTimer = setTimeout(async () => {
+            outProj.textContent = '…';
+            try {
+                const res = await apiPost('/simulate-score', {
+                    current_data: {
+                        monthly_income:    parseFloat(document.getElementById('up-income')?.value)     || lastScoreResult.monthly_income || 75000,
+                        emergency_savings: parseFloat(document.getElementById('up-savings')?.value)    || 150000,
+                        bill_payment_history: {
+                            bills_paid_on_time: parseInt(document.getElementById('up-bills-paid')?.value) || 20,
+                            total_bills:        parseInt(document.getElementById('up-bills-total')?.value)|| 24,
+                        },
+                        insurance: {
+                            has_health_insurance:  document.getElementById('up-ins-health')?.checked  || false,
+                            has_life_insurance:    document.getElementById('up-ins-life')?.checked    || false,
+                            has_vehicle_insurance: document.getElementById('up-ins-vehicle')?.checked || false,
+                        },
+                        transactions: parsedTransactions,
+                    },
+                    simulation_changes: {
+                        reduce_lifestyle_spending_percent: lVal,
+                        increase_investment_percent:       sVal,
+                    }
+                });
+
+                // Sync current score display
+                document.getElementById('sim-current-score').textContent = res.current_score;
+
+                outProj.textContent = res.simulated_score;
+                const delta = res.score_improvement;
+                // Show new risk tier
+                const simTierEl = document.getElementById('sim-new-tier');
+                if (simTierEl) simTierEl.textContent = res.new_risk_tier || '';
+
+                // Update arrow direction based on score change
+                const arrowEl = document.querySelector('.sim-arrow svg');
+                if (arrowEl) {
+                    if (delta > 0) {
+                        // Up arrow (pointing left = up when rotated) — score improved
+                        arrowEl.innerHTML = '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>';
+                        arrowEl.style.stroke = 'var(--success)';
+                        arrowEl.parentElement.style.filter = 'drop-shadow(0 0 8px rgba(34,197,94,0.5))';
+                    } else if (delta < 0) {
+                        // Down arrow — score decreased
+                        arrowEl.innerHTML = '<path d="M5 12h14"/><path d="m12 19 7-7-7-7"/>';
+                        arrowEl.style.stroke = 'var(--risk)';
+                        arrowEl.parentElement.style.filter = 'drop-shadow(0 0 8px rgba(239,68,68,0.5))';
+                    } else {
+                        // No change
+                        arrowEl.innerHTML = '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>';
+                        arrowEl.style.stroke = 'var(--gold)';
+                        arrowEl.parentElement.style.filter = 'drop-shadow(0 0 5px rgba(212,175,55,0.5))';
+                    }
+                }
+
+                if (delta > 0) {
+                    outProj.className    = 'sim-number text-success glow-text';
+                    outDelta.textContent = res.simulation_insight || ('Optimization successful. Trajectory delta: +' + delta + ' points.');
+                    outDelta.style.cssText = 'color:var(--success);border:1px solid rgba(34,197,94,0.2);background:rgba(34,197,94,0.05)';
+                } else if (delta < 0) {
+                    outProj.className    = 'sim-number text-white glow-text';
+                    outDelta.textContent = res.simulation_insight || ('Net effect: ' + delta + ' points. Try adjusting both levers.');
+                    outDelta.style.cssText = 'color:var(--gray-light);border:1px solid rgba(255,255,255,0.05);background:rgba(20,20,20,0.5)';
+                } else {
+                    outProj.className    = 'sim-number gold-text glow-text';
+                    outDelta.textContent = 'No change detected. Adjust levers further.';
+                    outDelta.style.cssText = 'color:var(--gray-light);border:1px solid rgba(255,255,255,0.05);background:rgba(20,20,20,0.5)';
+                }
+            } catch (err) {
+                outProj.textContent  = '—';
+                const msg = err?.message || String(err);
+                // Show a useful message — distinguish network/server errors from "no data" state
+                if (msg.includes('HTTP') || msg.includes('fetch') || msg.includes('Failed')) {
+                    outDelta.textContent = `Server error: ${msg}. Is the backend running on port 8000?`;
+                    outDelta.style.cssText = 'color:var(--risk);border:1px solid rgba(239,68,68,0.2);background:rgba(239,68,68,0.05)';
+                } else {
+                    outDelta.textContent = 'Simulation failed. Generate a trust score first, then adjust the levers.';
+                    outDelta.style.cssText = 'color:var(--gray-light);border:1px solid rgba(255,255,255,0.05);background:rgba(20,20,20,0.5)';
+                }
+            }
+        }, 600);
+    };
+
+    sLife.addEventListener('input', updateSim);
+    sSave.addEventListener('input', updateSim);
+    sBill.addEventListener('input', updateSim);
+    resetBtn.addEventListener('click', () => {
+        sLife.value = 0; sSave.value = 0; sBill.value = 0;
+        vLife.textContent = '0%';
+        vSave.textContent = '+0%';
+        vBill.textContent = 'Baseline';
+        // Restore projected score to match current score
+        const base = lastScoreResult?.trust_score || apiData.user.score || null;
+        const curEl = document.getElementById('sim-current-score');
+        if (curEl && base) curEl.textContent = base;
+        outProj.textContent = base || '—';
+        outProj.className = 'sim-number gold-text glow-text';
+        outDelta.textContent = 'Adjust levers to compute delta.';
+        outDelta.style.cssText = '';
+        const simTierEl = document.getElementById('sim-new-tier');
+        if (simTierEl) simTierEl.textContent = lastScoreResult?.risk_tier || '';
+        // Reset arrow to neutral gold state
+        const arrowEl = document.querySelector('.sim-arrow svg');
+        if (arrowEl) {
+            arrowEl.innerHTML = '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>';
+            arrowEl.style.stroke = '#D4AF37';
+            arrowEl.parentElement.style.filter = 'drop-shadow(0 0 5px rgba(212,175,55,0.5))';
+        }
+        showToast('Simulator Reset', 'Baseline values restored.');
+    });
+}
+
+/* ═══════════════════════════════════════════
+   AI CHATBOT  →  POST /financial-chat
+═══════════════════════════════════════════ */
+let chatIdCounter = 0;
+
+async function sendChat() {
+    const input    = document.getElementById('chat-input');
+    const question = input.value.trim();
+    if (!question) return;
+    input.value = '';
+
+    addChatBubble('user', question);
+    const typingId = addChatBubble('ai', '●  ●  ●', true);
+
+    try {
+        const body = { question };
+        if (lastScoreResult) {
+            body.score_context = {
+                trust_score:     lastScoreResult.trust_score,
+                risk_tier:       lastScoreResult.risk_tier,
+                score_breakdown: lastScoreResult.score_breakdown,
+                insights:        lastScoreResult.insights || [],
+            };
+        }
+        const res = await apiPost('/financial-chat', body);
+        removeChatBubble(typingId);
+        addChatBubble('ai', res.response || 'No response received.');
+    } catch (err) {
+        removeChatBubble(typingId);
+        addChatBubble('ai', 'AI advisor temporarily unavailable. Ensure GEMINI_API_KEY or GROQ_API_KEY is configured on the backend.');
+    }
+}
+
+function addChatBubble(role, text, typing = false) {
+    const id        = 'cm-' + (++chatIdCounter);
+    const isUser    = role === 'user';
+    const container = document.getElementById('chat-messages');
+    const wrap      = document.createElement('div');
+    wrap.id         = id;
+    wrap.style.cssText = `display:flex;gap:10px;align-items:flex-start;${isUser?'flex-direction:row-reverse':''}`;
+
+    const av = document.createElement('div');
+    av.style.cssText = 'width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;';
+    av.style.background = isUser ? 'rgba(212,175,55,0.18)' : 'rgba(212,175,55,0.10)';
+    av.style.border     = isUser ? '1px solid rgba(212,175,55,0.4)' : '1px solid rgba(212,175,55,0.22)';
+    av.innerHTML = isUser
+        ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'
+        : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5"><path d="M12 2L3 7l9 5 9-5-9-5z"/><path d="M3 12l9 5 9-5"/></svg>';
+
+    const bubble = document.createElement('div');
+    bubble.style.cssText = [
+        'max-width:75%','font-size:13px','line-height:1.65','padding:12px 16px','border-radius:12px',
+        isUser
+            ? 'background:rgba(212,175,55,0.12);border:1px solid rgba(212,175,55,0.22);color:rgba(255,255,255,0.9);border-bottom-right-radius:4px'
+            : 'background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);color:rgba(255,255,255,0.78);border-bottom-left-radius:4px'
+    ].join(';');
+    bubble.textContent = text;
+    if (typing) bubble.style.color = 'rgba(255,255,255,0.25)';
+
+    wrap.appendChild(av);
+    wrap.appendChild(bubble);
+    container.appendChild(wrap);
+    container.scrollTop = container.scrollHeight;
+    return id;
+}
+
+function removeChatBubble(id) { document.getElementById(id)?.remove(); }
+
+/* ═══════════════════════════════════════════
+   SCORE HISTORY  →  GET /my-scores
+═══════════════════════════════════════════ */
+async function loadHistory() {
+    const list = document.getElementById('history-list');
+    list.innerHTML = '<div style="color:var(--gray-light);text-align:center;padding:40px;opacity:0.45">Loading…</div>';
+
+    if (!getUID()) {
+        list.innerHTML = '<div style="color:var(--gray-light);text-align:center;padding:40px;opacity:0.45">Sign in to view your score history.</div>';
+        return;
+    }
+    try {
+        const data = await apiGet('/my-scores');
+        if (!data.scores?.length) {
+            list.innerHTML = '<div style="color:var(--gray-light);text-align:center;padding:40px;opacity:0.45">No saved scores yet. Generate your first trust score!</div>';
+            return;
+        }
+        list.innerHTML = data.scores.map(entry => {
+            const sd = entry.score_data || {};
+            const bd = sd.score_breakdown || {};
+            const ln = sd.loan_eligibility || {};
+            return `<div class="card dark-glass-card hover-glow" style="display:grid;grid-template-columns:auto 1fr auto;gap:24px;align-items:center;padding:22px 28px">
+                <div>
+                    <div class="ts-label" style="margin-bottom:4px">Trust Score</div>
+                    <div style="font-family:var(--font-display);font-size:44px;font-weight:600;color:var(--gold);line-height:1">${sd.trust_score||'—'}</div>
+                    <div style="font-size:12px;color:var(--gray-light);margin-top:4px">${sd.risk_tier||''}</div>
+                </div>
+                <div style="display:flex;gap:20px;flex-wrap:wrap">
+                    ${Object.entries(bd).map(([k,v])=>`<div><div class="ts-label" style="margin-bottom:3px">${k.replace('_',' ')}</div><div style="font-size:16px;font-weight:500;color:${v>70?'var(--success)':v>45?'var(--gold)':'var(--risk)'}">${Math.round(v)}</div></div>`).join('')}
+                    ${ln.recommended_loan?`<div><div class="ts-label" style="margin-bottom:3px">Loan</div><div style="font-size:16px;font-weight:500;color:var(--gold)">₹${Number(ln.recommended_loan).toLocaleString()}</div></div>`:''}
+                </div>
+                <div style="text-align:right;font-size:11px;color:var(--gray-light)">
+                    <div style="font-family:monospace;margin-bottom:4px">${entry.score_id?.slice(0,12)}…</div>
+                    <div>${entry.created_at||''}</div>
+                </div>
+            </div>`;
+        }).join('');
+    } catch (err) {
+        list.innerHTML = `<div style="color:var(--risk);text-align:center;padding:40px">Failed to load: ${err.message}</div>`;
+    }
+}
+
+/* ═══════════════════════════════════════════
+   DASHBOARD UTILS  (original, kept intact)
+═══════════════════════════════════════════ */
+function populateDashboardData() {
+    document.getElementById('hero-risk').textContent = apiData.user.risk;
+    document.getElementById('hero-conf').textContent = apiData.user.confidence ? apiData.user.confidence + '' : '—';
+    const ec = document.getElementById('explain-metrics-container');
+    apiData.explainability.forEach(item => {
+        const d = document.createElement('div');
+        d.className = 'explain-item';
+        d.innerHTML = `<div class="explain-dot ${item.status}"></div><div class="explain-text-group"><div class="explain-head"><span class="explain-title">${item.name}</span><span class="explain-pct">${item.pct}<span style="font-size:9px;opacity:0.55;margin-left:1px">/100</span></span></div><div class="explain-desc">${item.desc}</div></div>`;
+        ec.appendChild(d);
+    });
+    const cg = document.getElementById('copilot-grid');
+    apiData.copilot.forEach(rec => {
+        const d = document.createElement('div');
+        d.className = 'copilot-card';
+        d.innerHTML = `<h3 class="cr-title">${rec.title}</h3><div class="cr-impact"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 5v14"/><path d="m19 12-7-7-7 7"/></svg>+${rec.impact} Points</div><p class="cr-desc">${rec.desc}</p>`;
+        cg.appendChild(d);
+    });
+}
+
+function setupIntersectionObservers() {
+    const observer = new IntersectionObserver((entries, obs) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+                if (entry.target.querySelector('.score-ring')) animateTrustScoreRing(apiData.user.score);
+                entry.target.querySelectorAll('.counter').forEach(counter => animateNumber(counter));
+                obs.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.animate-fade-in').forEach(el => observer.observe(el));
+}
+
+function animateTrustScoreRing(targetScore) {
+    const circle = document.getElementById('hero-progress');
+    if (!circle) return;
+    const circumference = 439.8;
+    const svg = document.querySelector('.score-ring');
+    if (svg && !document.getElementById('goldGradientBase')) {
+        const defs = document.createElementNS('http://www.w3.org/2000/svg','defs');
+        defs.innerHTML = '<linearGradient id="goldGradientBase" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#D4AF37"/><stop offset="100%" stop-color="#C9A227"/></linearGradient>';
+        svg.prepend(defs);
+    }
+    const offset = circumference - ((Math.max(targetScore,0) / 900) * circumference);
+    circle.style.transition    = 'stroke-dashoffset 2s cubic-bezier(0.2,0.8,0.2,1) 0.5s';
+    circle.style.strokeDashoffset = offset;
+}
+
+function animateNumber(element) {
+    const target = parseInt(element.getAttribute('data-target') || element.textContent || '0');
+    if (!target) return;
+    const duration = 2000, stepTime = 20, steps = duration / stepTime, inc = target / steps;
+    let current = 0;
+    const timer = setInterval(() => {
+        current += inc;
+        if (current >= target) { element.textContent = target; clearInterval(timer); }
+        else { element.textContent = Math.round(current); }
+    }, stepTime);
+}
+
+function setupEMICalculator() {
+    const amtInput = document.getElementById('emi-amount');
+    const moInput  = document.getElementById('emi-months');
+    const out      = document.getElementById('emi-output');
+    const calc = () => {
+        const p = parseFloat(amtInput.value), n = parseFloat(moInput.value);
+        if (!p || !n) { out.textContent = '—'; return; }
+        const r = 0.08 / 12;
+        out.textContent = '₹' + Math.round(p * r * Math.pow(1+r,n) / (Math.pow(1+r,n)-1)).toLocaleString('en-IN');
+    };
+    amtInput.addEventListener('input', calc);
+    moInput.addEventListener('input', calc);
+}
+
+function showToast(title, msg) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.innerHTML = `<div class="toast-title">${title}</div><div class="toast-msg">${msg}</div>`;
+    container.appendChild(toast);
+    setTimeout(() => toast.classList.add('show'), 50);
+    setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 400); }, 5000);
+}
+
+function startNotificationEngine() {
+    // Single welcome toast only — no recurring distracting notifications
+    setTimeout(() => showToast('TrustMetric Ready', 'Upload your financial data to get started.'), 1000);
+}
+
+function setupDeepScan() { /* overlay controlled by calcTrustScore */ }
+
+function initDashboardCharts() {
+    if (!window.Chart) return;
+    const ctx = document.getElementById('explainabilityDonut');
+    if (!ctx || charts.explain) return;
+    const labels = apiData.explainability.length ? apiData.explainability.map(i=>i.name) : ['Liquidity','Discipline','Stability','Asset Protection','Risk'];
+    const data   = apiData.explainability.length ? apiData.explainability.map(i=>i.pct)  : [20,20,20,20,20];
+    charts.explain = new Chart(ctx, {
+        type:'doughnut',
+        data: { labels, datasets:[{ data, backgroundColor:['#D4AF37','#22C55E','#C9A227','#EAB308','#EF4444'], borderWidth:2, borderColor:'#111', hoverOffset:6 }] },
+        options:{ responsive:true, maintainAspectRatio:false, cutout:'80%', plugins:{legend:{display:false}}, animation:{animateScale:true,animateRotate:true,duration:2000} }
+    });
+}
+
+function initInsightsCharts() {
+    if (!window.Chart) return;
+    const bd  = lastScoreResult?.score_breakdown;
+    const cur = bd ? [bd.liquidity, bd.discipline, bd.stability, bd.asset_protection, bd.risk] : [0,0,0,0,0];
+
+    // ── Radar chart — uses real score breakdown data ──────────────────
+    const ctxRadar = document.getElementById('radarRiskChart');
+    if (ctxRadar) {
+        if (charts.radar) { charts.radar.destroy(); charts.radar = null; }
+        charts.radar = new Chart(ctxRadar, {
+            type: 'radar',
+            data: {
+                labels: ['Liquidity','Discipline','Stability','Asset Protection','Risk'],
+                datasets: [
+                    { label:'Your Score', data: cur,
+                      backgroundColor:'rgba(212,175,55,0.2)', borderColor:'#D4AF37',
+                      pointBackgroundColor:'#111', pointBorderColor:'#D4AF37' },
+                    { label:'Healthy Benchmark', data:[65,70,68,50,70],
+                      backgroundColor:'rgba(255,255,255,0.04)', borderColor:'rgba(255,255,255,0.2)',
+                      borderDash:[5,5], pointRadius:2 }
+                ]
+            },
+            options:{ responsive:true, maintainAspectRatio:false,
+                scales:{ r:{ min:0, max:100,
+                    angleLines:{color:'rgba(255,255,255,0.1)'},
+                    grid:{color:'rgba(255,255,255,0.1)'},
+                    pointLabels:{color:'rgba(255,255,255,0.6)',font:{size:11}},
+                    ticks:{display:false}
+                }},
+                plugins:{legend:{position:'bottom',labels:{color:'rgba(255,255,255,0.5)'}}},
+                animation:{duration:1000}
+            }
+        });
+    }
+
+    // ── Score Dimension Bar — uses real breakdown ─────────────────────
+    const ctxBar = document.getElementById('breakdownBarChart');
+    if (ctxBar) {
+        if (charts.breakdown) { charts.breakdown.destroy(); charts.breakdown = null; }
+        charts.breakdown = new Chart(ctxBar, {
+            type: 'bar',
+            data: {
+                labels: ['Liquidity','Discipline','Stability','Asset Protection','Risk'],
+                datasets:[{
+                    label: 'Score (0–100)',
+                    data: cur,
+                    backgroundColor: cur.map(v =>
+                        v > 70 ? 'rgba(34,197,94,0.7)' :
+                        v > 45 ? 'rgba(212,175,55,0.7)' : 'rgba(239,68,68,0.7)'
+                    ),
+                    borderColor: cur.map(v =>
+                        v > 70 ? '#22c55e' : v > 45 ? '#D4AF37' : '#ef4444'
+                    ),
+                    borderWidth: 1, borderRadius: 6
+                }]
+            },
+            options:{
+                responsive:true, maintainAspectRatio:false, indexAxis:'y',
+                plugins:{legend:{display:false}},
+                scales:{
+                    x:{ min:0, max:100, grid:{color:'rgba(255,255,255,0.05)'}, border:{display:false} },
+                    y:{ grid:{display:false} }
+                },
+                animation:{duration:800}
+            }
+        });
+    }
+
+    // ── Insights list — uses real insights from backend ───────────────
+    const insightsList = document.getElementById('analytics-insights-list');
+    if (insightsList) {
+        const insights = lastScoreResult?.insights || [];
+        if (insights.length) {
+            insightsList.innerHTML = insights.map((txt, i) => {
+                const color = i === 0 ? 'var(--success)' : i < 3 ? 'var(--gold)' : 'var(--gray-light)';
+                return '<div style="display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05)">' +
+                    '<div style="width:6px;height:6px;border-radius:50%;background:' + color + ';flex-shrink:0;margin-top:6px"></div>' +
+                    '<span style="font-size:13px;color:rgba(255,255,255,0.78);line-height:1.6">' + txt + '</span></div>';
+            }).join('');
+        } else {
+            insightsList.innerHTML = '<div style="color:var(--gray-light);font-size:13px;opacity:0.6">Generate a trust score first to see your personalised insights.</div>';
+        }
+    }
+}
+
+/* ═══════════════════════════════════════════
+   SESSION & INIT
+═══════════════════════════════════════════ */
+function initSession() {
+    const email = getEmail();
+    const avatarImg = document.querySelector('#user-avatar-display img');
+    if (avatarImg) {
+        const name = email.includes('@') ? email.split('@')[0] : email;
+        avatarImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=111&color=D4AF37`;
+        avatarImg.alt = name;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    initSession();
+    setupNavigation();
+    populateDashboardData();
+    setupIntersectionObservers();
+    setupEMICalculator();
+    setupSimulator();
+    setupDeepScan();
+    startNotificationEngine();
+});
+
+window.addEventListener('load', () => {
+    if (window.Chart) {
+        Chart.defaults.font.family = "'Outfit', sans-serif";
+        Chart.defaults.color       = 'rgba(255,255,255,0.4)';
+        Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(10,10,10,0.9)';
+        Chart.defaults.plugins.tooltip.titleColor      = '#D4AF37';
+        Chart.defaults.plugins.tooltip.padding         = 12;
+        Chart.defaults.plugins.tooltip.borderColor     = 'rgba(212,175,55,0.2)';
+        Chart.defaults.plugins.tooltip.borderWidth     = 1;
+        initDashboardCharts();
+    } else {
+        document.addEventListener('chartjs-loaded', initDashboardCharts);
+    }
+    if (window.VanillaTilt) {
+        VanillaTilt.init(document.querySelectorAll('[data-tilt]'), { max:3, speed:400, glare:true, 'max-glare':0.15, scale:1.01 });
+    }
+});
+/* ═══════════════════════════════════════════
+   DOWNLOAD PDF REPORT  →  POST /generate-pdf-report
+═══════════════════════════════════════════ */
+async function downloadPDFReport() {
+    if (!lastScoreResult) { alert('Generate a Trust Score first.'); return; }
+    const btn  = document.getElementById('btn-download-pdf');
+    const orig = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Generating…';
+    btn.style.opacity = '0.7';
+    try {
+        const payload = {
+            trust_score:             lastScoreResult.trust_score,
+            risk_tier:               lastScoreResult.risk_tier,
+            confidence_level:        lastScoreResult.confidence_level        || 'Medium',
+            score_breakdown:         lastScoreResult.score_breakdown,
+            insights:                lastScoreResult.insights                || [],
+            improvement_suggestions: lastScoreResult.improvement_suggestions || [],
+            loan_eligibility:        lastScoreResult.loan_eligibility        || null,
+        };
+        const headers = { 'Content-Type': 'application/json' };
+        const uid = getUID(); if (uid) headers['X-User-ID'] = uid;
+        const res = await fetch(API_BASE + '/generate-pdf-report', {
+            method: 'POST', headers, body: JSON.stringify(payload)
+        });
+        if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || `HTTP ${res.status}`); }
+        const blob = await res.blob();
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = 'trustmetric_report.pdf';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+        btn.textContent = 'Downloaded!';
+        setTimeout(() => { btn.textContent = orig; btn.disabled = false; btn.style.opacity = ''; }, 2200);
+    } catch (err) {
+        console.error('[TrustMetric] PDF error:', err);
+        btn.textContent = 'Failed — retry';
+        btn.style.color = 'var(--risk)';
+        setTimeout(() => { btn.textContent = orig; btn.disabled = false; btn.style.opacity = ''; btn.style.color = ''; }, 2500);
+    }
+}
+
+</script>
+</body>
+</html>
