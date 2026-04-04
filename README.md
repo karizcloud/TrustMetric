@@ -1,4 +1,4 @@
-# 🚀 TrustMetric — Alternative Financial Trust Score System
+# 🚀 TrustMetric —  Financial Trust Score System
 
 > A full-stack AI-powered financial trust scoring platform built for individuals without traditional credit histories.
 
